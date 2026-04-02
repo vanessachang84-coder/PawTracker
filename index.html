@@ -1,0 +1,2124 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PawTracker — 寵物健康管家</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:#FAF7F2; --white:#FFFDF9; --ink:#1C1917; --ink-light:#57534E;
+  --ink-muted:#A8A29E; --sage:#7C9E8A; --sage-light:#EDF3EF;
+  --amber:#D97706; --amber-light:#FEF3C7; --rose:#BE6B72; --rose-light:#FEF2F2;
+  --sky:#4A90B8; --sky-light:#EFF6FF; --border:#E7E2DA;
+  --nav-h:64px; --top-h:52px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  height: 100%;
+  font-family: 'DM Sans','Noto Sans TC',sans-serif;
+  background: #e8e3db;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+/* ── PHONE FRAME (desktop preview) ── */
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
+  margin: 0 auto;
+  background: var(--cream);
+  position: relative;
+  /* NO overflow:hidden — this was the bug */
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  height: var(--top-h);
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+.logo { font-family:'DM Serif Display',serif; font-size: 20px; }
+.logo span { color: var(--sage); }
+.topbar-r { display:flex; align-items:center; gap:8px; }
+.icon-btn {
+  width:34px; height:34px; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%; background:transparent; font-size:18px;
+  position: relative;
+}
+.icon-btn.av { background: var(--sage); font-size:15px; }
+.ndot {
+  position:absolute; top:2px; right:2px;
+  width:8px; height:8px; background:var(--rose);
+  border-radius:50%; border:2px solid var(--white);
+}
+
+/* ── MAIN SCROLL ── */
+.main-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* space for fixed bottom nav */
+  padding-bottom: calc(var(--nav-h) + 8px);
+}
+.main-scroll::-webkit-scrollbar { display: none; }
+
+/* ── PAGE ── */
+.page { display: none; }
+.page.active { display: block; animation: fadeSlide .18s ease; }
+@keyframes fadeSlide { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  height: var(--nav-h);
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: flex-start; padding-top: 6px;
+  z-index: 30;
+}
+.nb {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  gap:2px; border:none; background:transparent; cursor:pointer; padding:4px 0;
+  font-family: inherit;
+}
+.nb-ic { font-size:21px; line-height:1; position:relative; }
+.nb-lbl { font-size:10px; color:var(--ink-muted); font-weight:500; }
+.nb.active .nb-lbl { color:var(--sage); font-weight:600; }
+.bdot {
+  position:absolute; top:-2px; right:-5px;
+  width:8px; height:8px; background:var(--rose);
+  border-radius:50%; border:2px solid var(--white);
+}
+
+/* ── COMMON COMPONENTS ── */
+.greeting { padding: 18px 16px 6px; }
+.greeting-name { font-family:'DM Serif Display',serif; font-size:25px; line-height:1.15; }
+.greeting-sub { font-size:12px; color:var(--ink-muted); margin-top:3px; }
+.sec-lbl { font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--ink-muted); font-weight:500; padding:10px 16px 5px; }
+
+.card {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:16px; overflow:hidden; margin:0 16px 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+.card-head { display:flex; align-items:flex-start; justify-content:space-between; padding:13px 16px 8px; }
+.card-title { font-size:14px; font-weight:600; }
+.card-sub { font-size:12px; color:var(--ink-muted); margin-top:2px; }
+.card-action { font-size:13px; color:var(--sage); font-weight:500; cursor:pointer; border:none; background:transparent; font-family:inherit; white-space:nowrap; padding-top:2px; }
+
+.row { display:flex; align-items:center; padding:12px 16px; border-bottom:1px solid var(--border); gap:10px; }
+.row:last-child { border-bottom:none; }
+.row-ic { font-size:19px; width:26px; text-align:center; flex-shrink:0; }
+.row-main { flex:1; min-width:0; }
+.row-title { font-size:14px; font-weight:500; }
+.row-sub { font-size:12px; color:var(--ink-muted); margin-top:1px; }
+.row-right { text-align:right; flex-shrink:0; }
+
+/* ── BADGES ── */
+.badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; }
+.b-ok { background:var(--sage-light); color:var(--sage); }
+.b-warn { background:var(--amber-light); color:var(--amber); }
+.b-high { background:var(--rose-light); color:var(--rose); }
+.b-low { background:var(--sky-light); color:var(--sky); }
+
+/* ── STATS GRID ── */
+.stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:8px 16px; }
+.stat-box { background:var(--white); border:1px solid var(--border); border-radius:14px; padding:12px 14px; }
+.stat-lbl { font-size:10px; color:var(--ink-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:500; }
+.stat-val { font-family:'DM Serif Display',serif; font-size:24px; margin-top:3px; line-height:1; }
+.stat-val unit { font-family:'DM Sans',sans-serif; font-size:12px; }
+.stat-meta { font-size:11px; color:var(--ink-muted); margin-top:2px; }
+.c-up { color:var(--rose); } .c-down { color:var(--sage); } .c-warn { color:var(--amber); }
+
+/* ── ALERT BANNER ── */
+.alert-banner {
+  margin:6px 16px 10px; background:var(--amber-light);
+  border:1px solid #FCD34D; border-radius:13px;
+  padding:11px 13px; display:flex; gap:9px; align-items:flex-start;
+}
+.a-ic { font-size:17px; flex-shrink:0; margin-top:1px; }
+.a-title { font-size:13px; font-weight:600; color:#92400E; }
+.a-desc { font-size:12px; color:#B45309; margin-top:2px; line-height:1.5; }
+
+/* ── CHART ── */
+.chart-wrap { padding:4px 14px 12px; }
+.chart-wrap svg { width:100%; display:block; }
+
+/* ── CHART TABS ── */
+.chart-tabs {
+  display:flex; gap:5px; padding:0 16px 10px;
+  overflow-x:auto; -webkit-overflow-scrolling:touch;
+}
+.chart-tabs::-webkit-scrollbar { display:none; }
+.ctab {
+  padding:5px 12px; border-radius:99px; font-size:12px; font-weight:500;
+  cursor:pointer; border:1.5px solid var(--border); background:var(--white);
+  color:var(--ink-light); white-space:nowrap; transition:all .15s; font-family:inherit;
+}
+.ctab.active { background:var(--ink); color:white; border-color:var(--ink); }
+.ctab.active.warn { background:var(--amber); border-color:var(--amber); }
+.ctab.active.high { background:var(--rose); border-color:var(--rose); }
+.ctab.active.ok { background:var(--sage); border-color:var(--sage); }
+
+/* ── BLOOD TABLE - redesigned as cards ── */
+.indicator-list { display:flex; flex-direction:column; }
+.indicator-row {
+  display:flex; align-items:center; padding:11px 16px;
+  border-bottom:1px solid var(--border); gap:10px; cursor:pointer;
+}
+.indicator-row:last-child { border-bottom:none; }
+.indicator-row:active { background:var(--cream); }
+.ind-name { font-size:14px; font-weight:600; width:44px; flex-shrink:0; }
+.ind-val { font-size:18px; font-weight:600; font-family:'DM Serif Display',serif; }
+.ind-unit { font-size:11px; color:var(--ink-muted); margin-top:1px; }
+.ind-range { font-size:11px; color:var(--ink-muted); }
+.ind-right { margin-left:auto; text-align:right; }
+.ind-trend { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
+.trend-line { width:40px; height:20px; }
+
+/* ── MINI SPARKLINE ── */
+.spark { overflow:visible; }
+
+/* ── HISTORY SWITCHER ── */
+.history-nav {
+  display:flex; align-items:center; gap:8px; padding:0 16px 10px;
+}
+.hist-btn {
+  display:flex; align-items:center; gap:5px; padding:6px 12px;
+  border:1px solid var(--border); border-radius:99px; font-size:12px;
+  cursor:pointer; background:var(--white); font-family:inherit; color:var(--ink-light);
+}
+.hist-btn.current { background:var(--ink); color:white; border-color:var(--ink); }
+.hist-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+/* ── COMPARISON BANNER ── */
+.compare-banner {
+  margin:0 16px 10px; background:var(--sky-light);
+  border:1px solid #BAE6FD; border-radius:12px; padding:10px 13px;
+  font-size:12px; color:var(--sky); display:flex; gap:8px; align-items:center;
+}
+
+/* ── MED ITEMS ── */
+.med-list { display:flex; flex-direction:column; gap:7px; padding:0 16px 14px; }
+.med-item {
+  display:flex; align-items:center; gap:11px;
+  background:var(--cream); border-radius:12px; padding:11px 13px;
+  transition:opacity .3s;
+}
+.med-item.done { opacity:.5; }
+.med-ic { font-size:21px; flex-shrink:0; }
+.med-name { font-size:13px; font-weight:500; }
+.med-detail { font-size:11px; color:var(--ink-muted); margin-top:1px; }
+.check-btn {
+  margin-left:auto; width:28px; height:28px; border-radius:50%;
+  border:2px solid var(--border); background:transparent; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; flex-shrink:0; transition:all .18s;
+}
+.check-btn.checked { background:var(--sage); border-color:var(--sage); color:white; }
+
+/* ── PET CHIPS ── */
+.pet-strip { display:flex; gap:8px; padding:10px 16px 6px; overflow-x:auto; }
+.pet-strip::-webkit-scrollbar { display:none; }
+.pet-chip {
+  display:flex; align-items:center; gap:7px;
+  background:var(--white); border:1.5px solid var(--border);
+  border-radius:99px; padding:6px 13px 6px 7px; cursor:pointer; flex-shrink:0;
+}
+.pet-chip.active { border-color:var(--sage); background:var(--sage-light); }
+.pc-av { font-size:19px; }
+.pc-name { font-size:13px; font-weight:600; }
+.pc-age { font-size:10px; color:var(--ink-muted); }
+
+/* ── QUICK GRID ── */
+.quick-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:9px;
+  padding:0 16px 14px;
+}
+.quick-cell {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:13px; padding:13px 12px; cursor:pointer; text-align:center;
+}
+.quick-cell:active { background:var(--cream); }
+.quick-ic { font-size:26px; margin-bottom:5px; }
+.quick-title { font-size:13px; font-weight:600; }
+.quick-sub { font-size:11px; color:var(--ink-muted); margin-top:2px; }
+
+/* ── TOGGLE ── */
+.toggle {
+  width:42px; height:24px; background:var(--sage); border-radius:99px;
+  position:relative; cursor:pointer; flex-shrink:0; transition:background .2s;
+}
+.toggle.off { background:var(--border); }
+.toggle::after {
+  content:''; position:absolute; width:18px; height:18px;
+  background:white; border-radius:50%; top:3px; right:3px; transition:.2s;
+}
+.toggle.off::after { right:auto; left:3px; }
+
+/* ── BUTTONS ── */
+.btn {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:8px 14px; border-radius:10px; font-size:13px; font-weight:500;
+  cursor:pointer; border:none; font-family:inherit; transition:opacity .15s;
+}
+.btn:active { opacity:.7; }
+.btn-dark { background:var(--ink); color:white; }
+.btn-out { background:transparent; color:var(--ink); border:1px solid var(--border); }
+.btn-sage { background:var(--sage); color:white; }
+.btn-rose { background:var(--rose); color:white; }
+
+.big-btn {
+  width:calc(100% - 32px); margin:0 16px 10px;
+  padding:14px; border:none; border-radius:13px;
+  font-size:15px; font-weight:600; font-family:inherit;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px;
+}
+.big-btn:active { opacity:.85; }
+.big-btn.dark { background:var(--ink); color:white; }
+.big-btn.sage { background:var(--sage); color:white; }
+.big-btn.rose { background:var(--rose); color:white; }
+
+/* ── FORMS ── */
+.form-group { padding:0 16px 10px; }
+.form-label { font-size:11px; color:var(--ink-muted); font-weight:500; margin-bottom:5px; display:block; letter-spacing:.3px; }
+.form-input {
+  width:100%; border:1px solid var(--border); border-radius:10px;
+  padding:10px 12px; font-family:inherit; font-size:14px; background:var(--white); color:var(--ink);
+}
+.form-input:focus { outline:none; border-color:var(--sage); }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 16px 10px; }
+.form-select {
+  width:100%; border:1px solid var(--border); border-radius:10px;
+  padding:10px 12px; font-family:inherit; font-size:14px; background:var(--white); color:var(--ink);
+  -webkit-appearance:none;
+}
+
+/* ── CHIP SELECT ── */
+.chips { display:flex; flex-wrap:wrap; gap:7px; padding:0 16px 10px; }
+.chip {
+  padding:6px 13px; border:1.5px solid var(--border); border-radius:99px;
+  font-size:13px; cursor:pointer; background:var(--white); font-family:inherit;
+  transition:all .15s;
+}
+.chip.sel { background:var(--sage); border-color:var(--sage); color:white; }
+
+/* ── SHEET ── */
+.overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:50;
+  display:none; align-items:flex-end; justify-content:center;
+}
+.overlay.show { display:flex; animation:ovIn .2s ease; }
+@keyframes ovIn { from{opacity:0} to{opacity:1} }
+.sheet {
+  background:var(--white); border-radius:20px 20px 0 0;
+  width:100%; max-width:430px; max-height:90vh; overflow-y:auto;
+  animation:sheetUp .25s cubic-bezier(.32,1.25,.6,1);
+}
+.sheet::-webkit-scrollbar { display:none; }
+@keyframes sheetUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.sheet-handle { width:36px; height:4px; background:var(--border); border-radius:99px; margin:12px auto 6px; }
+.sheet-title { font-family:'DM Serif Display',serif; font-size:20px; padding:2px 16px 14px; }
+
+/* ── OCR ── */
+.upload-zone {
+  margin:0 16px 14px; border:2px dashed var(--border); border-radius:15px;
+  padding:32px 20px; text-align:center; cursor:pointer; background:var(--white);
+}
+.upload-zone:active { border-color:var(--sage); background:var(--sage-light); }
+.upload-btns { display:flex; gap:9px; justify-content:center; margin-top:14px; }
+.ocr-result { display:none; padding:0 16px; }
+.ocr-result.show { display:block; }
+.scan-status {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:5px 12px; border-radius:99px; font-size:12px; font-weight:600; margin-bottom:12px;
+}
+.scan-status::before { content:'●'; }
+.scan-status.loading { background:var(--amber-light); color:var(--amber); }
+.scan-status.done { background:var(--sage-light); color:var(--sage); }
+.shimmer-line { height:13px; border-radius:6px; margin-bottom:9px; background:linear-gradient(90deg,#f0ebe3 25%,#faf7f2 50%,#f0ebe3 75%); background-size:300px 100%; animation:shim 1.4s infinite; }
+@keyframes shim { 0%{background-position:-300px 0} 100%{background-position:300px 0} }
+.edit-field { border:1px solid var(--border); border-radius:8px; padding:5px 8px; font-family:inherit; font-size:13px; width:68px; text-align:right; background:var(--white); }
+.edit-field:focus { outline:none; border-color:var(--sage); }
+.edit-field.err { border-color:var(--rose); }
+
+/* ── TIMER ── */
+.timer-display { text-align:center; padding:24px 16px 16px; }
+.timer-num { font-family:'DM Serif Display',serif; font-size:68px; letter-spacing:-3px; line-height:1; color:var(--ink-muted); }
+.timer-num.running { color:var(--rose); }
+.timer-num.stopped { color:var(--sage); }
+.timer-sub { font-size:13px; color:var(--ink-muted); margin-top:6px; }
+.timer-btns { display:flex; gap:9px; padding:0 16px 14px; }
+.timer-btns .btn { flex:1; justify-content:center; padding:13px; }
+.tlog-item { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.tlog-item:last-child { border-bottom:none; }
+
+/* ── SHOP ── */
+.shop-card { margin:0 16px 10px; background:var(--white); border:1px solid var(--border); border-radius:15px; overflow:hidden; }
+.shop-img { height:76px; display:flex; align-items:center; justify-content:center; font-size:38px; }
+.shop-img.a { background:linear-gradient(135deg,#EDF3EF,#d4e9dc); }
+.shop-img.b { background:linear-gradient(135deg,#EFF6FF,#dbeafe); }
+.shop-img.c { background:linear-gradient(135deg,#FEF3C7,#fde68a); }
+.shop-body { padding:11px 13px 0; }
+.shop-name { font-size:14px; font-weight:600; }
+.shop-why { font-size:11px; color:var(--sage); margin-top:2px; }
+.shop-disc { font-size:12px; color:var(--ink-light); margin-top:4px; line-height:1.45; }
+.shop-foot { display:flex; align-items:center; justify-content:space-between; padding:10px 13px; border-top:1px solid var(--border); margin-top:10px; }
+.shop-price { font-size:15px; font-weight:600; }
+
+/* ── APPT ── */
+.appt-item { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); }
+.appt-item:last-child { border-bottom:none; }
+.appt-date { width:38px; text-align:center; flex-shrink:0; }
+.appt-month { font-size:9px; text-transform:uppercase; color:var(--ink-muted); font-weight:500; }
+.appt-day { font-family:'DM Serif Display',serif; font-size:22px; line-height:1.1; }
+.appt-info { flex:1; min-width:0; }
+.appt-title { font-size:14px; font-weight:500; }
+.appt-meta { font-size:12px; color:var(--ink-muted); margin-top:1px; }
+
+/* ── LOG ── */
+.week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; padding:0 16px 12px; }
+.day-cell { background:var(--cream); border-radius:9px; padding:7px 3px; text-align:center; cursor:pointer; }
+.day-cell.good { background:var(--sage-light); }
+.day-cell.warn { background:var(--amber-light); }
+.day-cell.bad { background:var(--rose-light); }
+.day-cell.add { border:1.5px dashed var(--border); }
+.day-em { font-size:17px; }
+.day-lbl { font-size:9px; color:var(--ink-muted); margin-top:3px; line-height:1.3; }
+
+/* ── CLINIC ── */
+.map-stub { margin:0 16px 10px; background:linear-gradient(135deg,#EDF3EF,#daeae0); border-radius:14px; height:140px; display:flex; align-items:center; justify-content:center; font-size:38px; cursor:pointer; position:relative; }
+.map-stub::after { content:'點擊開啟地圖'; position:absolute; bottom:10px; left:50%; transform:translateX(-50%); background:var(--ink); color:white; font-size:11px; padding:5px 13px; border-radius:99px; white-space:nowrap; }
+
+/* ── STEPS ── */
+.steps { display:flex; justify-content:center; align-items:center; padding:4px 16px 16px; }
+.step-dot { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; flex-shrink:0; transition:all .3s; }
+.step-line { height:2px; width:22px; flex-shrink:0; transition:background .3s; }
+.step-lbl-wrap { text-align:center; }
+.step-lbl { font-size:9px; margin-top:3px; color:var(--ink-muted); }
+
+/* ── NOTIF ── */
+.notif-item { display:flex; gap:11px; padding:12px 16px; border-bottom:1px solid var(--border); }
+.notif-item:last-child { border-bottom:none; }
+.notif-dot-ic { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+.nd-warn { background:var(--amber-light); }
+.nd-rose { background:var(--rose-light); }
+.nd-info { background:var(--sky-light); }
+.nd-ok { background:var(--sage-light); }
+.notif-title { font-size:14px; font-weight:500; }
+.notif-desc { font-size:12px; color:var(--ink-light); margin-top:2px; line-height:1.5; }
+.notif-time { font-size:11px; color:var(--ink-muted); margin-top:4px; }
+.unread-dot { width:8px; height:8px; background:var(--rose); border-radius:50%; flex-shrink:0; margin-top:5px; }
+
+/* ── PDF PREVIEW ── */
+.pdf-preview { margin:0 16px 10px; background:var(--white); border:1px solid var(--border); border-radius:15px; overflow:hidden; box-shadow:0 3px 14px rgba(0,0,0,.06); }
+.pdf-head { background:var(--ink); color:white; padding:16px 18px; }
+.pdf-hl { font-family:'DM Serif Display',serif; font-size:17px; }
+.pdf-hm { font-size:11px; opacity:.5; margin-top:2px; }
+.pdf-body { padding:14px 18px; }
+.pdf-sec { font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:var(--ink-muted); font-weight:500; padding-bottom:7px; border-bottom:1px solid var(--border); margin-bottom:9px; }
+.sum-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:12px; }
+.sum-item { background:var(--cream); border-radius:9px; padding:9px 11px; }
+.sum-lbl { font-size:10px; color:var(--ink-muted); }
+.sum-val { font-size:14px; font-weight:600; margin-top:1px; }
+
+/* ── SHARE BTNS ── */
+.share-btn {
+  display:flex; align-items:center; gap:11px;
+  background:var(--white); border:1px solid var(--border); border-radius:12px;
+  padding:13px 15px; margin:0 16px 8px; font-size:14px; font-weight:500;
+  cursor:pointer; width:calc(100% - 32px); font-family:inherit;
+}
+.share-btn:active { background:var(--cream); }
+
+/* ── FAB ── */
+.fab {
+  position:fixed; bottom:calc(var(--nav-h) + 12px); right:calc(50% - 430px/2 + 16px);
+  width:50px; height:50px; background:var(--ink); color:white;
+  border:none; border-radius:50%; font-size:22px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.22); z-index:25;
+  transition:transform .15s;
+}
+@media (max-width:430px) {
+  .fab { right:16px; }
+}
+.fab:active { transform:scale(.9); }
+
+/* ── TOAST ── */
+.toast {
+  position:fixed;
+  bottom:calc(var(--nav-h) + 12px);
+  left:50%; transform:translateX(-50%) translateY(80px);
+  background:var(--ink); color:white; padding:11px 20px;
+  border-radius:12px; font-size:13px; font-weight:500;
+  white-space:nowrap; z-index:99; opacity:0;
+  transition:all .25s cubic-bezier(.34,1.56,.64,1); pointer-events:none;
+}
+.toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">Paw<span>Track</span></div>
+  <div class="topbar-r">
+    <button class="icon-btn" onclick="showPage('notif')">🔔<span class="ndot"></span></button>
+    <button class="icon-btn av" onclick="openSheet('sheet-profile')">🐱</button>
+  </div>
+</div>
+
+<!-- MAIN SCROLL -->
+<div class="main-scroll" id="main-scroll">
+
+<!-- ═══ HOME ═══ -->
+<div class="page active" id="page-home">
+  <div class="greeting">
+    <div class="greeting-name" id="home-greeting-name">小橘的今天 🐾</div>
+    <div class="greeting-sub" id="home-greeting-sub">最後更新：2025/06/15・共 8 次血檢紀錄</div>
+  </div>
+
+  <div class="pet-strip">
+    <div class="pet-chip active" data-petid="0" id="pc0" onclick="switchPet(0)">
+      <div class="pc-av">🐱</div>
+      <div><div class="pc-name">小橘</div><div class="pc-age">橘貓・11歲</div></div>
+    </div>
+    <div class="pet-chip" data-petid="1" id="pc1" onclick="switchPet(1)">
+      <div class="pc-av">🐶</div>
+      <div><div class="pc-name">阿柴</div><div class="pc-age">柴犬・4歲</div></div>
+    </div>
+    <div class="pet-chip" onclick="openSheet('sheet-add-pet')">
+      <div class="pc-av">➕</div>
+      <div><div class="pc-name" style="color:var(--ink-muted)">新增</div></div>
+    </div>
+  </div>
+
+  <div class="alert-banner" id="home-alert">
+    <div class="a-ic">⚠️</div>
+    <div>
+      <div class="a-title">BUN 連續上升 28%</div>
+      <div class="a-desc">兩次血檢變化幅度超標，建議提前諮詢獸醫師。</div>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="stat-lbl">體重</div>
+      <div class="stat-val" id="home-stat-weight">4.2<unit> kg</unit></div>
+      <div class="stat-meta"><span class="c-down">↓ 0.3kg</span> 較上次</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-lbl">CREA 肌酸酐</div>
+      <div class="stat-val c-warn" id="home-stat-crea">1.9<unit> mg/dL</unit></div>
+      <div class="stat-meta"><span class="c-up">↑ 偏高邊緣</span></div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-lbl">ALT 肝指數</div>
+      <div class="stat-val" style="color:var(--sage)">42<unit> U/L</unit></div>
+      <div class="stat-meta"><span class="c-down">↓ 正常穩定</span></div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-lbl">下次回診</div>
+      <div class="stat-val" style="font-size:20px;margin-top:5px" id="home-stat-next">7/22</div>
+      <div class="stat-meta">距今 37 天</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><div class="card-title">腎功能趨勢</div><div class="card-sub">BUN・CREA・近 6 個月</div></div>
+      <button class="card-action" onclick="showPage('blood')">詳情 ›</button>
+    </div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 320 110" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#D97706" stop-opacity=".15"/>
+            <stop offset="100%" stop-color="#D97706" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="58" width="320" height="22" fill="#7C9E8A" opacity=".08"/>
+        <line x1="0" y1="96" x2="320" y2="96" stroke="#E7E2DA"/>
+        <line x1="0" y1="36" x2="320" y2="36" stroke="#E7E2DA" stroke-width=".5" stroke-dasharray="3,3"/>
+        <line x1="0" y1="65" x2="320" y2="65" stroke="#E7E2DA" stroke-width=".5" stroke-dasharray="3,3"/>
+        <path d="M18,82 L76,76 L134,70 L192,60 L250,48 L302,38 L302,96 L18,96Z" fill="url(#bg1)"/>
+        <path d="M18,82 L76,76 L134,70 L192,60 L250,48 L302,38" fill="none" stroke="#D97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M18,79 L76,75 L134,74 L192,69 L250,63 L302,57" fill="none" stroke="#BE6B72" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5,3"/>
+        <circle cx="302" cy="38" r="4" fill="#D97706" stroke="white" stroke-width="2"/>
+        <circle cx="302" cy="57" r="4" fill="#BE6B72" stroke="white" stroke-width="2"/>
+        <text x="18" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">1月</text>
+        <text x="76" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">2月</text>
+        <text x="134" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">3月</text>
+        <text x="192" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">4月</text>
+        <text x="250" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">5月</text>
+        <text x="302" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">6月</text>
+        <rect x="6" y="6" width="9" height="2.5" rx="1.5" fill="#D97706"/>
+        <text x="18" y="10" font-size="8" fill="#78716C">BUN</text>
+        <rect x="48" y="6" width="9" height="2.5" rx="1.5" fill="#BE6B72"/>
+        <text x="60" y="10" font-size="8" fill="#78716C">CREA</text>
+        <text x="302" y="34" text-anchor="middle" font-size="8" fill="#D97706" font-weight="600">36</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="sec-lbl">今日用藥 <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">1/3 完成</span></div>
+  <div class="med-list">
+    <div class="med-item done"><div class="med-ic">💊</div><div><div class="med-name">愛貓錠</div><div class="med-detail">1/4 錠・08:00・✓ 08:12 已記錄</div></div><button class="check-btn checked" disabled>✓</button></div>
+    <div class="med-item" id="hm1"><div class="med-ic">🧪</div><div><div class="med-name">磷結合劑</div><div class="med-detail">0.5ml・12:00</div></div><button class="check-btn" onclick="checkMed(this,'hm1')">○</button></div>
+    <div class="med-item" id="hm2"><div class="med-ic">🌿</div><div><div class="med-name">腎寶</div><div class="med-detail">1 包・19:00</div></div><button class="check-btn" onclick="checkMed(this,'hm2')">○</button></div>
+  </div>
+
+  <div class="sec-lbl">快速記錄</div>
+  <div class="quick-grid">
+    <div class="quick-cell" onclick="showPage('log')"><div class="quick-ic">💧</div><div class="quick-title">飲水記錄</div><div class="quick-sub">今日 0 / 250ml</div></div>
+    <div class="quick-cell" onclick="openSheet('sheet-toilet')"><div class="quick-ic">🚽</div><div class="quick-title">排泄記錄</div><div class="quick-sub">今日尚未記錄</div></div>
+    <div class="quick-cell" onclick="showPage('timer')"><div class="quick-ic">⏱</div><div class="quick-title">癲癇計時器</div><div class="quick-sub">緊急記錄工具</div></div>
+    <div class="quick-cell" onclick="showPage('appt')"><div class="quick-ic">📅</div><div class="quick-title">回診行程</div><div class="quick-sub">7/22 下次回診</div></div>
+  </div>
+</div>
+
+<!-- ═══ BLOOD ═══ -->
+<div class="page" id="page-blood">
+  <div class="greeting">
+    <div class="greeting-name">血檢紀錄</div>
+    <div class="greeting-sub">小橘・共 8 筆紀錄</div>
+  </div>
+
+  <!-- History nav -->
+  <div class="history-nav" id="hist-nav">
+    <button class="hist-btn" id="hprev" onclick="changeRecord(-1)">◀</button>
+    <div style="flex:1;text-align:center">
+      <div style="font-size:14px;font-weight:600" id="hist-date">2025/06/15</div>
+      <div style="font-size:11px;color:var(--ink-muted)" id="hist-index">第 8 筆（最新）</div>
+    </div>
+    <button class="hist-btn current" id="hnext" disabled onclick="changeRecord(1)">最新 ▶</button>
+  </div>
+
+  <!-- Comparison note -->
+  <div class="compare-banner" id="compare-banner" style="display:none">
+    📊 與上次相比，BUN ↑28%・CREA ↑10%
+  </div>
+
+  <!-- Indicator chart with tabs -->
+  <div class="card">
+    <div class="card-head">
+      <div><div class="card-title">趨勢圖</div><div class="card-sub" id="chart-indicator-lbl">BUN 尿素氮</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+        <div id="chart-current-val" style="font-family:'DM Serif Display',serif;font-size:22px;color:var(--amber)">36</div>
+        <div style="font-size:10px;color:var(--ink-muted)">mg/dL</div>
+      </div>
+    </div>
+    <div class="chart-tabs" id="chart-tabs">
+      <button class="ctab active warn" onclick="switchChart(this,'BUN','warn')">BUN</button>
+      <button class="ctab active high" onclick="switchChart(this,'CREA','high')" style="background:transparent;color:var(--ink-light);border-color:var(--border)">CREA</button>
+      <button class="ctab" onclick="switchChart(this,'SDMA','warn')">SDMA</button>
+      <button class="ctab" onclick="switchChart(this,'ALT','ok')">ALT</button>
+      <button class="ctab" onclick="switchChart(this,'PHOS','ok')">PHOS</button>
+      <button class="ctab" onclick="switchChart(this,'RBC','ok')">RBC</button>
+      <button class="ctab" onclick="switchChart(this,'體重','ok')">體重</button>
+    </div>
+    <div class="chart-wrap" id="main-chart-wrap">
+      <svg id="main-chart" viewBox="0 0 320 110" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="line-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#D97706" stop-opacity=".18" id="grad-stop"/>
+            <stop offset="100%" stop-color="#D97706" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="58" width="320" height="22" fill="#7C9E8A" opacity=".08"/>
+        <line x1="0" y1="96" x2="320" y2="96" stroke="#E7E2DA"/>
+        <line x1="0" y1="36" x2="320" y2="36" stroke="#E7E2DA" stroke-width=".5" stroke-dasharray="3,3"/>
+        <line x1="0" y1="65" x2="320" y2="65" stroke="#E7E2DA" stroke-width=".5" stroke-dasharray="3,3"/>
+        <path id="chart-fill" d="M18,82 L76,76 L134,70 L192,60 L250,48 L302,38 L302,96 L18,96Z" fill="url(#line-grad)"/>
+        <path id="chart-line" d="M18,82 L76,76 L134,70 L192,60 L250,48 L302,38" fill="none" stroke="#D97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle id="c1" cx="18" cy="82" r="3" fill="white" stroke="#D97706" stroke-width="2"/>
+        <circle id="c2" cx="76" cy="76" r="3" fill="white" stroke="#D97706" stroke-width="2"/>
+        <circle id="c3" cx="134" cy="70" r="3" fill="white" stroke="#D97706" stroke-width="2"/>
+        <circle id="c4" cx="192" cy="60" r="3" fill="white" stroke="#D97706" stroke-width="2"/>
+        <circle id="c5" cx="250" cy="48" r="3" fill="white" stroke="#D97706" stroke-width="2"/>
+        <circle id="c6" cx="302" cy="38" r="4" fill="#D97706" stroke="white" stroke-width="2"/>
+        <text x="18" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">1月</text>
+        <text x="76" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">2月</text>
+        <text x="134" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">3月</text>
+        <text x="192" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">4月</text>
+        <text x="250" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">5月</text>
+        <text x="302" y="108" text-anchor="middle" font-size="8" fill="#A8A29E">6月</text>
+        <text id="val-start" x="18" y="78" text-anchor="middle" font-size="8" fill="#D97706">28</text>
+        <text id="val-end" x="302" y="34" text-anchor="middle" font-size="8" fill="#D97706" font-weight="600">36</text>
+      </svg>
+    </div>
+    <div style="margin:0 16px 12px;background:var(--cream);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--ink-light);line-height:1.6" id="indicator-desc">
+      💡 <strong>BUN（尿素氮）</strong>是腎臟過濾蛋白廢物的指標。升高代表腎功能可能下降或蛋白質攝取過多。連續上升趨勢需密切追蹤。
+    </div>
+  </div>
+
+  <!-- Indicator list (card style) -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">2025/06/15 各項數值</div>
+      <button class="btn btn-sage" style="font-size:11px;padding:5px 10px" onclick="openSheet('sheet-hospital')">🏥 醫院設定</button>
+    </div>
+    <div class="indicator-list">
+      <div class="indicator-row" onclick="switchChartByRow('BUN','warn')">
+        <div class="ind-name">BUN</div>
+        <div>
+          <div class="ind-val c-warn">36</div>
+          <div class="ind-unit">mg/dL</div>
+        </div>
+        <div class="ind-right">
+          <span class="badge b-warn">邊緣</span>
+          <div class="ind-trend">
+            <svg class="trend-line spark" viewBox="0 0 40 20"><polyline points="0,16 8,14 16,12 24,10 32,7 40,4" fill="none" stroke="#D97706" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--amber)">↑28%</span>
+          </div>
+          <div class="ind-range">正常 16–36</div>
+        </div>
+      </div>
+      <div class="indicator-row" onclick="switchChartByRow('CREA','high')">
+        <div class="ind-name">CREA</div>
+        <div>
+          <div class="ind-val" style="color:var(--rose)">1.9</div>
+          <div class="ind-unit">mg/dL</div>
+        </div>
+        <div class="ind-right">
+          <span class="badge b-high">偏高</span>
+          <div class="ind-trend">
+            <svg class="trend-line spark" viewBox="0 0 40 20"><polyline points="0,15 8,14 16,13 24,11 32,9 40,6" fill="none" stroke="#BE6B72" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--rose)">↑10%</span>
+          </div>
+          <div class="ind-range">正常 0.8–1.8</div>
+        </div>
+      </div>
+      <div class="indicator-row" onclick="switchChartByRow('SDMA','warn')">
+        <div class="ind-name">SDMA</div>
+        <div>
+          <div class="ind-val c-warn">14</div>
+          <div class="ind-unit">μg/dL</div>
+        </div>
+        <div class="ind-right">
+          <span class="badge b-warn">臨界</span>
+          <div class="ind-trend">
+            <svg class="trend-line spark" viewBox="0 0 40 20"><polyline points="0,12 8,12 16,11 24,11 32,11 40,11" fill="none" stroke="#D97706" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--amber)">→ 持平</span>
+          </div>
+          <div class="ind-range">正常 &lt;14</div>
+        </div>
+      </div>
+      <div class="indicator-row" onclick="switchChartByRow('ALT','ok')">
+        <div class="ind-name">ALT</div>
+        <div>
+          <div class="ind-val" style="color:var(--sage)">42</div>
+          <div class="ind-unit">U/L</div>
+        </div>
+        <div class="ind-right">
+          <span class="badge b-ok">正常</span>
+          <div class="ind-trend">
+            <svg class="trend-line spark" viewBox="0 0 40 20"><polyline points="0,10 8,11 16,9 24,10 32,11 40,10" fill="none" stroke="#7C9E8A" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--sage)">↓ 穩定</span>
+          </div>
+          <div class="ind-range">正常 12–130</div>
+        </div>
+      </div>
+      <div class="indicator-row" onclick="switchChartByRow('PHOS','ok')">
+        <div class="ind-name">PHOS</div>
+        <div>
+          <div class="ind-val" style="color:var(--sage)">5.1</div>
+          <div class="ind-unit">mg/dL</div>
+        </div>
+        <div class="ind-right">
+          <span class="badge b-ok">正常</span>
+          <div class="ind-trend">
+            <svg class="trend-line spark" viewBox="0 0 40 20"><polyline points="0,13 8,12 16,12 24,11 32,11 40,10" fill="none" stroke="#7C9E8A" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--sage)">↓ 改善</span>
+          </div>
+          <div class="ind-range">正常 2.6–6.0</div>
+        </div>
+      </div>
+      <div class="indicator-row" onclick="switchChartByRow('RBC','ok')">
+        <div class="ind-name">RBC</div>
+        <div>
+          <div class="ind-val" style="color:var(--sage)">6.8</div>
+          <div class="ind-unit">×10⁶/μL</div>
+        </div>
+        <div class="ind-right">
+          <span class="badge b-ok">正常</span>
+          <div class="ind-trend">
+            <svg class="trend-line spark" viewBox="0 0 40 20"><polyline points="0,11 8,11 16,10 24,11 32,10 40,11" fill="none" stroke="#7C9E8A" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--sage)">→ 穩定</span>
+          </div>
+          <div class="ind-range">正常 5.0–10.0</div>
+        </div>
+      </div>
+      <div class="indicator-row" onclick="switchChartByRow('WBC','ok')">
+        <div class="ind-name">WBC</div>
+        <div>
+          <div class="ind-val" style="color:var(--sage)">8.2</div>
+          <div class="ind-unit">×10³/μL</div>
+        </div>
+        <div class="ind-right">
+          <span class="badge b-ok">正常</span>
+          <div class="ind-trend">
+            <svg class="trend-line spark" viewBox="0 0 40 20"><polyline points="0,10 8,10 16,11 24,10 32,10 40,10" fill="none" stroke="#7C9E8A" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--sage)">→ 穩定</span>
+          </div>
+          <div class="ind-range">正常 5.5–19.5</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="big-btn dark" onclick="showPage('ocr')" style="margin-top:4px">📷 新增血檢報告</button>
+</div>
+
+<!-- ═══ OCR ═══ -->
+<div class="page" id="page-ocr">
+  <div class="greeting">
+    <div class="greeting-name">掃描血檢報告</div>
+    <div class="greeting-sub">拍照上傳，系統自動辨識數值</div>
+  </div>
+  <div class="steps">
+    <div style="text-align:center"><div class="step-dot" id="s1" style="background:var(--sage);color:white">✓</div><div class="step-lbl" id="s1l" style="color:var(--ink-muted)">選寵物</div></div>
+    <div class="step-line" id="l2" style="background:var(--sage)"></div>
+    <div style="text-align:center"><div class="step-dot" id="s2" style="background:var(--ink);color:white">2</div><div class="step-lbl" id="s2l" style="color:var(--ink);font-weight:500">上傳</div></div>
+    <div class="step-line" id="l3" style="background:var(--border)"></div>
+    <div style="text-align:center"><div class="step-dot" id="s3" style="background:var(--border);color:var(--ink-muted)">3</div><div class="step-lbl" id="s3l" style="color:var(--ink-muted)">確認</div></div>
+    <div class="step-line" id="l4" style="background:var(--border)"></div>
+    <div style="text-align:center"><div class="step-dot" id="s4" style="background:var(--border);color:var(--ink-muted)">4</div><div class="step-lbl" id="s4l" style="color:var(--ink-muted)">完成</div></div>
+  </div>
+  <div style="margin:0 16px 12px;background:var(--white);border:1px solid var(--border);border-radius:11px;padding:11px 13px;display:flex;align-items:center;gap:9px;cursor:pointer;" onclick="openSheet('sheet-hospital')">
+    <span style="font-size:17px">🏥</span>
+    <div><div style="font-size:13px;font-weight:500">台大動物醫院</div><div style="font-size:11px;color:var(--ink-muted)">使用此醫院正常值範圍</div></div>
+    <span style="margin-left:auto;color:var(--ink-muted)">›</span>
+  </div>
+  <div class="upload-zone" id="upload-zone" onclick="simulateScan()">
+    <div style="font-size:34px;margin-bottom:9px">📋</div>
+    <div style="font-size:16px;font-weight:600">點擊上傳血檢報告</div>
+    <div style="font-size:13px;color:var(--ink-muted);margin-top:4px;line-height:1.5">支援 JPG・PNG・PDF<br>系統自動辨識常見血液指標</div>
+    <div class="upload-btns">
+      <button class="btn btn-dark" onclick="event.stopPropagation();simulateScan()">📷 拍照</button>
+      <button class="btn btn-out" onclick="event.stopPropagation();simulateScan()">📁 相簿</button>
+    </div>
+  </div>
+  <div class="ocr-result" id="ocr-result">
+    <!-- 返回按鈕 -->
+    <button id="ocr-back-btn" onclick="ocrGoBack()" style="display:none;align-items:center;gap:6px;margin-bottom:12px;background:transparent;border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--ink-light)">← 重新上傳</button>
+    <div id="scan-status-el" class="scan-status loading">辨識中，請稍候</div>
+    <div id="shimmer-wrap"><div class="shimmer-line" style="width:100%"></div><div class="shimmer-line" style="width:82%"></div><div class="shimmer-line" style="width:91%"></div><div class="shimmer-line" style="width:70%"></div></div>
+    <div class="card" id="ocr-card" style="display:none">
+      <div style="padding:12px 16px">
+        <div style="font-size:12px;color:var(--rose);margin-bottom:10px;background:var(--rose-light);border-radius:8px;padding:7px 10px">⚠ ALT 欄位辨識不確定，請手動填入</div>
+        <table style="width:100%;border-collapse:collapse;min-width:280px">
+          <thead><tr><th style="font-size:10px;color:var(--ink-muted);font-weight:500;text-align:left;padding:0 6px 8px;border-bottom:1px solid var(--border);letter-spacing:.4px;text-transform:uppercase">指標</th><th style="font-size:10px;color:var(--ink-muted);font-weight:500;text-align:left;padding:0 6px 8px;border-bottom:1px solid var(--border)">辨識值</th><th style="font-size:10px;color:var(--ink-muted);font-weight:500;text-align:left;padding:0 6px 8px;border-bottom:1px solid var(--border)">修正</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:9px 6px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">BUN</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);font-size:13px">36 mg/dL</td><td style="padding:9px 6px;border-bottom:1px solid var(--border)"><input class="edit-field" value="36" type="number"></td></tr>
+            <tr><td style="padding:9px 6px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">CREA</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);font-size:13px">1.9 mg/dL</td><td style="padding:9px 6px;border-bottom:1px solid var(--border)"><input class="edit-field" value="1.9" type="number" step="0.1"></td></tr>
+            <tr><td style="padding:9px 6px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">SDMA</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);font-size:13px">14 μg/dL</td><td style="padding:9px 6px;border-bottom:1px solid var(--border)"><input class="edit-field" value="14" type="number"></td></tr>
+            <tr><td style="padding:9px 6px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">ALT</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);font-size:13px;color:var(--rose)">⚠ 不確定</td><td style="padding:9px 6px;border-bottom:1px solid var(--border)"><input class="edit-field err" placeholder="？" type="number"></td></tr>
+            <tr><td style="padding:9px 6px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">PHOS</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);font-size:13px">5.1 mg/dL</td><td style="padding:9px 6px;border-bottom:1px solid var(--border)"><input class="edit-field" value="5.1" type="number" step="0.1"></td></tr>
+            <tr><td style="padding:9px 6px;font-size:13px;font-weight:600">RBC</td><td style="padding:9px 6px;font-size:13px">6.8 ×10⁶</td><td style="padding:9px 6px"><input class="edit-field" value="6.8" type="number" step="0.1"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="form-group" id="date-input-wrap" style="display:none">
+      <label class="form-label">檢驗日期</label>
+      <input class="form-input" type="date" value="2025-06-15">
+    </div>
+    <button class="big-btn sage" id="ocr-save-btn" style="display:none" onclick="saveOcr()">✓ 確認並儲存血檢數據</button>
+  </div>
+</div>
+
+<!-- ═══ MEDS ═══ -->
+<div class="page" id="page-meds">
+  <div class="greeting"><div class="greeting-name">用藥管理</div><div class="greeting-sub">小橘・3 種在用藥品</div></div>
+  <div class="sec-lbl">藥品清單</div>
+  <div class="card">
+
+    <!-- 藥品 1 -->
+    <div style="padding:13px 16px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="font-size:20px;width:26px;text-align:center;flex-shrink:0;margin-top:1px">💊</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600">愛貓錠（Fortekor 5mg）</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">
+            <span style="background:var(--ink);color:white;font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px">1/4 錠</span>
+            <span style="font-size:11px;color:var(--ink-muted)">= 1.25mg / 次</span>
+            <span style="font-size:11px;color:var(--ink-muted)">・早餐後</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+            <span style="font-size:11px;background:var(--sage-light);color:var(--sage);padding:2px 7px;border-radius:4px">benazepril 5mg/錠</span>
+            <span style="font-size:11px;background:var(--sky-light);color:var(--sky);padding:2px 7px;border-radius:4px">ACE 抑制劑</span>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:13px;font-weight:600;color:var(--sage)">剩 62 天</div>
+          <div style="font-size:10px;color:var(--ink-muted);margin-top:1px">8/17 用完</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 藥品 2 -->
+    <div style="padding:13px 16px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="font-size:20px;width:26px;text-align:center;flex-shrink:0;margin-top:1px">🧪</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600">磷結合劑 Al(OH)₃</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">
+            <span style="background:var(--ink);color:white;font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px">0.5 ml</span>
+            <span style="font-size:11px;color:var(--ink-muted)">= 100mg / 次</span>
+            <span style="font-size:11px;color:var(--ink-muted)">・午餐前混食</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+            <span style="font-size:11px;background:var(--amber-light);color:var(--amber);padding:2px 7px;border-radius:4px">200mg/ml 懸浮液</span>
+            <span style="font-size:11px;background:var(--rose-light);color:var(--rose);padding:2px 7px;border-radius:4px">⚠ 剩 7 天</span>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:13px;font-weight:600;color:var(--rose)">剩 7 天</div>
+          <div style="font-size:10px;color:var(--ink-muted);margin-top:1px">6/22 用完</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 藥品 3 -->
+    <div style="padding:13px 16px">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="font-size:20px;width:26px;text-align:center;flex-shrink:0;margin-top:1px">🌿</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600">腎寶（Azodyl）</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">
+            <span style="background:var(--ink);color:white;font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px">1 包</span>
+            <span style="font-size:11px;color:var(--ink-muted)">= 250mg / 次</span>
+            <span style="font-size:11px;color:var(--ink-muted)">・晚餐後</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+            <span style="font-size:11px;background:var(--sage-light);color:var(--sage);padding:2px 7px;border-radius:4px">益生菌 250mg/包</span>
+            <span style="font-size:11px;background:var(--sky-light);color:var(--sky);padding:2px 7px;border-radius:4px">腸道吸附尿毒素</span>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:13px;font-weight:600">剩 28 天</div>
+          <div style="font-size:10px;color:var(--ink-muted);margin-top:1px">7/13 用完</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <button class="big-btn dark" onclick="openSheet('sheet-add-med')">＋ 新增藥品</button>
+  <div class="sec-lbl">今日服藥紀錄</div>
+  <div class="med-list">
+    <div class="med-item done"><div class="med-ic">💊</div><div><div class="med-name">早上 08:00・愛貓錠</div><div class="med-detail">✓ 已服用・08:12</div></div><button class="check-btn checked" disabled>✓</button></div>
+    <div class="med-item" id="mm1"><div class="med-ic">🧪</div><div><div class="med-name">中午 12:00・磷結合劑</div><div class="med-detail">0.5ml・尚未服用</div></div><button class="check-btn" onclick="checkMed(this,'mm1')">○</button></div>
+    <div class="med-item" id="mm2"><div class="med-ic">🌿</div><div><div class="med-name">晚上 19:00・腎寶</div><div class="med-detail">1 包・尚未服用</div></div><button class="check-btn" onclick="checkMed(this,'mm2')">○</button></div>
+  </div>
+  <div class="sec-lbl">家人共享</div>
+  <div class="card">
+    <div class="row"><div class="row-ic">👨‍👩‍👧</div><div class="row-main"><div class="row-title">Family Share</div><div class="row-sub">服藥紀錄即時同步所有成員</div></div><div class="toggle" onclick="this.classList.toggle('off')"></div></div>
+    <div class="row" style="padding:10px 16px"><div style="width:30px;height:30px;border-radius:50%;background:var(--sage);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">爸</div><div class="row-main" style="margin-left:8px"><div class="row-title">陳先生</div><div class="row-sub">主要管理員</div></div><span class="badge b-ok">已加入</span></div>
+    <div class="row" style="padding:10px 16px"><div style="width:30px;height:30px;border-radius:50%;background:var(--sky);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">媽</div><div class="row-main" style="margin-left:8px"><div class="row-title">陳太太</div><div class="row-sub">成員</div></div><span class="badge b-ok">已加入</span></div>
+    <div class="row" style="cursor:pointer;padding:10px 16px" onclick="toast('已發送邀請連結')"><div style="width:30px;height:30px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">➕</div><div class="row-main" style="margin-left:8px"><div class="row-title" style="color:var(--sage)">邀請成員</div></div></div>
+  </div>
+</div>
+
+<!-- ═══ LOG ═══ -->
+<div class="page" id="page-log">
+  <div class="greeting"><div class="greeting-name">生活日誌</div><div class="greeting-sub">飲水・排泄・體重・心情</div></div>
+  <div class="sec-lbl">本週概覽</div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding:0 16px 5px;text-align:center;">
+    <div style="font-size:9px;color:var(--ink-muted)">一</div><div style="font-size:9px;color:var(--ink-muted)">二</div><div style="font-size:9px;color:var(--ink-muted)">三</div><div style="font-size:9px;color:var(--ink-muted)">四</div><div style="font-size:9px;color:var(--ink-muted)">五</div><div style="font-size:9px;color:var(--ink-muted)">六</div><div style="font-size:9px;color:var(--ink)">今</div>
+  </div>
+  <div class="week-grid">
+    <div class="day-cell good"><div class="day-em">😊</div><div class="day-lbl">240ml</div></div>
+    <div class="day-cell good"><div class="day-em">😊</div><div class="day-lbl">210ml</div></div>
+    <div class="day-cell warn"><div class="day-em">😐</div><div class="day-lbl">140ml</div></div>
+    <div class="day-cell good"><div class="day-em">😊</div><div class="day-lbl">225ml</div></div>
+    <div class="day-cell good"><div class="day-em">😊</div><div class="day-lbl">230ml</div></div>
+    <div class="day-cell bad"><div class="day-em">😟</div><div class="day-lbl">100ml</div></div>
+    <div class="day-cell add" onclick="openSheet('sheet-add-log')"><div class="day-em">➕</div><div class="day-lbl">記錄</div></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">飲水目標</div><div style="font-size:12px;color:var(--ink-muted)" id="water-label">0 / 250ml</div></div>
+    <div style="padding:0 16px 14px">
+      <div style="height:9px;background:var(--cream);border-radius:99px;overflow:hidden"><div style="height:100%;width:0%;background:var(--sky);border-radius:99px;transition:width .4s" id="water-bar"></div></div>
+      <div style="display:flex;gap:7px;margin-top:10px">
+        <button class="btn btn-out" style="flex:1;justify-content:center" onclick="addWater(50)">+50ml</button>
+        <button class="btn btn-out" style="flex:1;justify-content:center" onclick="addWater(100)">+100ml</button>
+        <button class="btn" style="flex:1;justify-content:center;background:var(--sky-light);color:var(--sky)" onclick="addWater(150)">+150ml</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="row"><div class="row-ic">🟡</div><div class="row-main"><div class="row-title">小便</div><div class="row-sub">今日 2 次・顏色正常</div></div><button class="btn btn-out" style="font-size:12px;padding:5px 10px" onclick="openSheet('sheet-toilet')">記錄</button></div>
+    <div class="row"><div class="row-ic">🟤</div><div class="row-main"><div class="row-title">大便</div><div class="row-sub">今日 1 次・成形正常</div></div><button class="btn btn-out" style="font-size:12px;padding:5px 10px" onclick="openSheet('sheet-toilet')">記錄</button></div>
+  </div>
+  <div class="sec-lbl">照護日誌</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 16px">
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer"><div style="height:70px;background:linear-gradient(135deg,#FEF3C7,#FDE68A);display:flex;align-items:center;justify-content:center;font-size:32px">😴</div><div style="padding:7px 10px"><div style="font-size:12px;font-weight:500">午覺時光</div><div style="font-size:10px;color:var(--ink-muted)">6/14 14:32</div></div></div>
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer"><div style="height:70px;background:linear-gradient(135deg,#EDF3EF,#d4e9dc);display:flex;align-items:center;justify-content:center;font-size:32px">🍽️</div><div style="padding:7px 10px"><div style="font-size:12px;font-weight:500">吃飯好乖</div><div style="font-size:10px;color:var(--ink-muted)">6/14 08:15</div></div></div>
+    <div style="background:var(--white);border:1.5px dashed var(--border);border-radius:12px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer" onclick="openSheet('sheet-add-journal')"><div style="font-size:26px">📸</div><div style="font-size:11px;color:var(--ink-muted)">新增日誌</div></div>
+  </div>
+</div>
+
+<!-- ═══ EXPORT ═══ -->
+<div class="page" id="page-export">
+  <div class="greeting"><div class="greeting-name">匯出報告</div><div class="greeting-sub">一鍵生成 PDF，傳給獸醫師</div></div>
+  <div class="chart-tabs" style="padding:0 16px 10px">
+    <button class="ctab active" onclick="selectTab(this)">近 3 個月</button>
+    <button class="ctab" onclick="selectTab(this)">近 6 個月</button>
+    <button class="ctab" onclick="selectTab(this)">近 1 年</button>
+    <button class="ctab" onclick="selectTab(this)">全部</button>
+  </div>
+  <div class="pdf-preview">
+    <div class="pdf-head">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div class="pdf-hl">小橘・健康追蹤報告</div><div class="pdf-hm">2025/04 — 2025/06｜主治：林獸醫師</div></div>
+        <div style="font-family:'DM Serif Display',serif;font-size:13px;opacity:.6">Paw<span style="color:var(--sage);opacity:1">Track</span></div>
+      </div>
+    </div>
+    <div class="pdf-body">
+      <div class="pdf-sec">基本資料</div>
+      <div class="sum-grid">
+        <div class="sum-item"><div class="sum-lbl">寵物名</div><div class="sum-val">小橘</div></div>
+        <div class="sum-item"><div class="sum-lbl">年齡・品種</div><div class="sum-val">11歲・橘貓</div></div>
+        <div class="sum-item"><div class="sum-lbl">最新體重</div><div class="sum-val">4.2 kg</div></div>
+        <div class="sum-item"><div class="sum-lbl">下次回診</div><div class="sum-val">7/22</div></div>
+      </div>
+      <div class="pdf-sec">重點指標</div>
+      <div class="sum-grid">
+        <div class="sum-item"><div class="sum-lbl">BUN</div><div class="sum-val c-warn">36 ↑</div></div>
+        <div class="sum-item"><div class="sum-lbl">CREA</div><div class="sum-val" style="color:var(--rose)">1.9 ↑</div></div>
+        <div class="sum-item"><div class="sum-lbl">ALT</div><div class="sum-val" style="color:var(--sage)">42 ✓</div></div>
+        <div class="sum-item"><div class="sum-lbl">SDMA</div><div class="sum-val c-warn">14 →</div></div>
+      </div>
+      <div class="pdf-sec">趨勢（3個月）</div>
+      <svg viewBox="0 0 260 55" style="width:100%;margin-bottom:12px">
+        <rect x="0" y="24" width="260" height="12" fill="#7C9E8A" opacity=".07"/>
+        <line x1="0" y1="48" x2="260" y2="48" stroke="#E7E2DA"/>
+        <path d="M8,38 L90,30 L175,20 L252,14" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8,36 L90,33 L175,28 L252,24" fill="none" stroke="#BE6B72" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4,3"/>
+      </svg>
+      <div class="pdf-sec">在用藥品</div>
+      <div style="font-size:12px;color:var(--ink-light);line-height:1.9">• 愛貓錠 1/4錠・早餐後<br>• 磷結合劑 0.5ml・午餐前<br>• 腎寶 1包・晚餐後</div>
+    </div>
+  </div>
+  <div style="padding:0 16px 8px">
+    <div style="font-size:11px;color:var(--ink-muted);font-weight:500;margin-bottom:9px;letter-spacing:.3px">包含項目</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer"><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--sage)"> 血檢數值趨勢圖</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer"><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--sage)"> 用藥紀錄</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer"><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--sage)"> 體重變化</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer"><input type="checkbox" style="width:16px;height:16px;accent-color:var(--sage)"> 飲水排泄記錄</label>
+    </div>
+  </div>
+  <button class="big-btn dark" style="margin-top:14px" onclick="toast('📄 PDF 已生成！')">📤 立即匯出 PDF</button>
+  <button class="share-btn" onclick="toast('開啟 LINE 分享…')"><span style="font-size:19px">💬</span> 透過 LINE 傳送</button>
+  <button class="share-btn" onclick="toast('開啟 Email…')"><span style="font-size:19px">✉️</span> 透過 Email 傳送</button>
+  <button class="share-btn" onclick="toast('儲存至手機…')"><span style="font-size:19px">📱</span> 儲存至手機</button>
+</div>
+
+<!-- ═══ NOTIF ═══ -->
+<div class="page" id="page-notif">
+  <div class="greeting"><div class="greeting-name">通知中心</div></div>
+  <div class="card">
+    <div class="notif-item"><div class="notif-dot-ic nd-warn">⚠️</div><div style="flex:1"><div class="notif-title">BUN 連續上升 28%</div><div class="notif-desc">兩次血檢幅度超標，建議提前安排複查。</div><div class="notif-time">今天 09:00</div></div><div class="unread-dot"></div></div>
+    <div class="notif-item"><div class="notif-dot-ic nd-rose">💊</div><div style="flex:1"><div class="notif-title">磷結合劑剩餘 7 天</div><div class="notif-desc">預計 6/22 用完，請提早申請處方箋。</div><div class="notif-time">今天 08:30</div></div><div class="unread-dot"></div></div>
+    <div class="notif-item"><div class="notif-dot-ic nd-info">📅</div><div style="flex:1"><div class="notif-title">回診提醒</div><div class="notif-desc">小橘腎臟科回診（7/22）距今 37 天。</div><div class="notif-time">昨天 10:00</div></div></div>
+    <div class="notif-item"><div class="notif-dot-ic nd-ok">✓</div><div style="flex:1"><div class="notif-title">血檢紀錄已儲存</div><div class="notif-desc">2025/06/15 血檢數值已成功分析完畢。</div><div class="notif-time">6/15 14:22</div></div></div>
+  </div>
+</div>
+
+<!-- ═══ TIMER ═══ -->
+<div class="page" id="page-timer">
+  <div class="greeting"><div class="greeting-name">緊急記錄工具</div><div class="greeting-sub">癲癇・心跳・呼吸頻率測量</div></div>
+
+  <!-- Mode Tabs -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 16px 14px">
+    <button class="timer-mode-btn active" id="tmode-seizure" onclick="switchTimerMode('seizure')" style="border:1.5px solid var(--rose);background:var(--rose);color:white;border-radius:11px;padding:10px 6px;font-family:inherit;cursor:pointer;font-size:12px;font-weight:600;line-height:1.4">
+      ⚡ 癲癇<br><span style="font-weight:400;font-size:10px">計時器</span>
+    </button>
+    <button class="timer-mode-btn" id="tmode-heart" onclick="switchTimerMode('heart')" style="border:1.5px solid var(--border);background:var(--white);color:var(--ink-light);border-radius:11px;padding:10px 6px;font-family:inherit;cursor:pointer;font-size:12px;font-weight:600;line-height:1.4">
+      ❤️ 心跳<br><span style="font-weight:400;font-size:10px">次/分鐘</span>
+    </button>
+    <button class="timer-mode-btn" id="tmode-breath" onclick="switchTimerMode('breath')" style="border:1.5px solid var(--border);background:var(--white);color:var(--ink-light);border-radius:11px;padding:10px 6px;font-family:inherit;cursor:pointer;font-size:12px;font-weight:600;line-height:1.4">
+      🌬 呼吸<br><span style="font-weight:400;font-size:10px">次/分鐘</span>
+    </button>
+  </div>
+
+  <!-- ── SEIZURE MODE ── -->
+  <div id="panel-seizure">
+    <div style="margin:0 16px 12px;background:var(--rose-light);border:1px solid #FCA5A5;border-radius:13px;padding:11px 13px;font-size:12px;color:#991B1B;line-height:1.6">
+      ⚠️ 若發作超過 <strong>5 分鐘</strong>或連續發作，請<strong>立即就醫</strong>。
+    </div>
+    <div class="timer-display">
+      <div class="timer-num" id="timer-num">00:00</div>
+      <div class="timer-sub" id="timer-sub">按下開始記錄發作時間</div>
+    </div>
+    <div class="timer-btns">
+      <button class="btn btn-rose" id="t-start" onclick="timerStart()" style="flex:1;justify-content:center;padding:13px;font-size:14px">⏱ 開始計時</button>
+      <button class="btn btn-out" id="t-stop" onclick="timerStop()" style="display:none;flex:1;justify-content:center;padding:13px;font-size:14px">⏹ 停止</button>
+      <button class="btn btn-out" id="t-reset" onclick="timerReset()" style="display:none;padding:13px">↺</button>
+    </div>
+    <button class="big-btn dark" id="t-save" style="display:none" onclick="timerSave()">💾 儲存紀錄</button>
+    <div class="sec-lbl">癲癇紀錄</div>
+    <div class="card">
+      <div style="padding:0 16px" id="seizure-log-list">
+        <div class="tlog-item"><span style="color:var(--rose);font-weight:500">6/10 03:22</span><span>⚡ 1分42秒</span><span class="badge b-warn">已記錄</span></div>
+        <div class="tlog-item"><span style="color:var(--rose);font-weight:500">5/28 11:05</span><span>⚡ 58秒</span><span class="badge b-ok">已記錄</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HEART MODE ── -->
+  <div id="panel-heart" style="display:none">
+    <div style="margin:0 16px 12px;background:var(--sky-light);border:1px solid #BAE6FD;border-radius:13px;padding:11px 13px;font-size:12px;color:#0369a1;line-height:1.6">
+      💡 <strong>貓咪正常心跳：120–140 次/分鐘</strong>，狗：60–140 次（依體型）。<br>靜止狀態下量測，建議每次量 15 秒 × 4 倍換算。
+    </div>
+
+    <!-- 15s counting mode -->
+    <div style="text-align:center;padding:20px 16px 8px">
+      <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;font-weight:500;letter-spacing:.3px;text-transform:uppercase">計數模式：15 秒</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:72px;line-height:1;color:var(--ink-muted)" id="heart-count">0</div>
+      <div style="font-size:14px;color:var(--ink-muted);margin-top:8px" id="heart-sub">每感覺到一次心跳，點擊下方按鈕</div>
+      <!-- Result display -->
+      <div id="heart-result" style="display:none;margin-top:12px;background:var(--rose-light);border-radius:14px;padding:14px 20px">
+        <div style="font-size:12px;color:var(--ink-muted)">換算結果（× 4）</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:48px;color:var(--rose);line-height:1" id="heart-bpm">—</div>
+        <div style="font-size:13px;font-weight:600;margin-top:4px" id="heart-status-lbl">次/分鐘</div>
+      </div>
+    </div>
+
+    <!-- 15s countdown ring -->
+    <div style="display:flex;justify-content:center;padding:0 16px 12px">
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="6"/>
+        <circle id="heart-ring" cx="40" cy="40" r="34" fill="none" stroke="var(--rose)" stroke-width="6"
+          stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"
+          transform="rotate(-90 40 40)" style="transition:stroke-dashoffset .9s linear"/>
+        <text id="heart-countdown" x="40" y="46" text-anchor="middle" font-size="22" font-family="DM Serif Display" fill="var(--ink-muted)">15</text>
+      </svg>
+    </div>
+
+    <div style="display:flex;gap:8px;padding:0 16px 14px">
+      <button id="h-tap-btn" onclick="heartTap()" style="flex:1;padding:16px;border:none;border-radius:14px;background:var(--rose);color:white;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;letter-spacing:.3px" disabled>
+        ❤️ 點擊計數
+      </button>
+      <button onclick="heartStart()" id="h-start-btn" style="padding:16px 14px;border:1.5px solid var(--border);border-radius:14px;background:var(--white);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink)">開始</button>
+      <button onclick="heartReset()" style="padding:16px 14px;border:1.5px solid var(--border);border-radius:14px;background:var(--white);font-size:13px;font-family:inherit;cursor:pointer;color:var(--ink-muted)">↺</button>
+    </div>
+    <button class="big-btn dark" id="h-save-btn" style="display:none" onclick="heartSave()">💾 儲存心跳紀錄</button>
+
+    <div class="sec-lbl">心跳紀錄</div>
+    <div class="card">
+      <div style="padding:0 16px" id="heart-log-list">
+        <div class="tlog-item"><span style="color:var(--ink-light);font-weight:500">6/14 20:10</span><span>❤️ <strong>128</strong> 次/分</span><span class="badge b-ok">正常</span></div>
+        <div class="tlog-item"><span style="color:var(--ink-light);font-weight:500">6/10 08:30</span><span>❤️ <strong>152</strong> 次/分</span><span class="badge b-warn">偏快</span></div>
+        <div class="tlog-item"><span style="color:var(--ink-light);font-weight:500">5/28 19:45</span><span>❤️ <strong>136</strong> 次/分</span><span class="badge b-ok">正常</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BREATH MODE ── -->
+  <div id="panel-breath" style="display:none">
+    <div style="margin:0 16px 12px;background:var(--sage-light);border:1px solid #A7D4B8;border-radius:13px;padding:11px 13px;font-size:12px;color:#2D6A4F;line-height:1.6">
+      💡 <strong>貓咪正常呼吸：20–30 次/分鐘</strong>，狗：15–30 次。<br>觀察胸部起伏，每次「起伏一次」算 1 次。量 30 秒 × 2 換算。
+    </div>
+
+    <div style="text-align:center;padding:20px 16px 8px">
+      <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;font-weight:500;letter-spacing:.3px;text-transform:uppercase">計數模式：30 秒</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:72px;line-height:1;color:var(--ink-muted)" id="breath-count">0</div>
+      <div style="font-size:14px;color:var(--ink-muted);margin-top:8px" id="breath-sub">每觀察到一次胸部起伏，點擊下方按鈕</div>
+      <div id="breath-result" style="display:none;margin-top:12px;background:var(--sage-light);border-radius:14px;padding:14px 20px">
+        <div style="font-size:12px;color:var(--ink-muted)">換算結果（× 2）</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:48px;color:var(--sage);line-height:1" id="breath-bpm">—</div>
+        <div style="font-size:13px;font-weight:600;margin-top:4px" id="breath-status-lbl">次/分鐘</div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:center;padding:0 16px 12px">
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="6"/>
+        <circle id="breath-ring" cx="40" cy="40" r="34" fill="none" stroke="var(--sage)" stroke-width="6"
+          stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"
+          transform="rotate(-90 40 40)" style="transition:stroke-dashoffset .9s linear"/>
+        <text id="breath-countdown" x="40" y="46" text-anchor="middle" font-size="22" font-family="DM Serif Display" fill="var(--ink-muted)">30</text>
+      </svg>
+    </div>
+
+    <div style="display:flex;gap:8px;padding:0 16px 14px">
+      <button id="b-tap-btn" onclick="breathTap()" style="flex:1;padding:16px;border:none;border-radius:14px;background:var(--sage);color:white;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;letter-spacing:.3px" disabled>
+        🌬 點擊計數
+      </button>
+      <button onclick="breathStart()" id="b-start-btn" style="padding:16px 14px;border:1.5px solid var(--border);border-radius:14px;background:var(--white);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink)">開始</button>
+      <button onclick="breathReset()" style="padding:16px 14px;border:1.5px solid var(--border);border-radius:14px;background:var(--white);font-size:13px;font-family:inherit;cursor:pointer;color:var(--ink-muted)">↺</button>
+    </div>
+    <button class="big-btn dark" id="b-save-btn" style="display:none" onclick="breathSave()">💾 儲存呼吸紀錄</button>
+
+    <div class="sec-lbl">呼吸紀錄</div>
+    <div class="card">
+      <div style="padding:0 16px" id="breath-log-list">
+        <div class="tlog-item"><span style="color:var(--ink-light);font-weight:500">6/14 21:00</span><span>🌬 <strong>24</strong> 次/分</span><span class="badge b-ok">正常</span></div>
+        <div class="tlog-item"><span style="color:var(--ink-light);font-weight:500">6/10 09:00</span><span>🌬 <strong>38</strong> 次/分</span><span class="badge b-high">偏快</span></div>
+        <div class="tlog-item"><span style="color:var(--ink-light);font-weight:500">5/28 20:00</span><span>🌬 <strong>22</strong> 次/分</span><span class="badge b-ok">正常</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ APPT ═══ -->
+<div class="page" id="page-appt">
+  <div class="greeting"><div class="greeting-name">回診行程</div><div class="greeting-sub">疫苗・健檢・專科門診</div></div>
+  <button class="big-btn dark" onclick="openSheet('sheet-add-appt')">＋ 新增回診預約</button>
+  <div class="sec-lbl">即將到來</div>
+  <div class="card">
+    <div class="appt-item"><div class="appt-date"><div class="appt-month">Jul</div><div class="appt-day">22</div></div><div class="appt-info"><div class="appt-title">腎臟科定期追蹤</div><div class="appt-meta">台大動物醫院・林醫師・09:30</div></div><span class="badge b-warn" style="flex-shrink:0">37天後</span></div>
+    <div class="appt-item"><div class="appt-date"><div class="appt-month">Aug</div><div class="appt-day">05</div></div><div class="appt-info"><div class="appt-title">年度健康檢查</div><div class="appt-meta">喵星人動物醫院・全套血液</div></div><span class="badge b-low" style="flex-shrink:0">51天後</span></div>
+    <div class="appt-item"><div class="appt-date"><div class="appt-month">Sep</div><div class="appt-day">01</div></div><div class="appt-info"><div class="appt-title">狂犬病疫苗</div><div class="appt-meta">社區動物醫院・第三劑</div></div><span class="badge" style="background:var(--cream);color:var(--ink-muted);flex-shrink:0">78天後</span></div>
+  </div>
+  <div class="sec-lbl">附近急診診所</div>
+  <div class="map-stub" onclick="toast('開啟 Google Maps…')">🗺️</div>
+  <div class="card">
+    <div class="row" style="cursor:pointer" onclick="toast('開啟地圖導航')"><div class="row-ic">🏥</div><div class="row-main"><div class="row-title">台大動物醫院（急診）</div><div class="row-sub">24小時・腎臟科・內外科</div></div><div style="color:var(--sage);font-size:12px;font-weight:600;flex-shrink:0">1.2km</div></div>
+    <div class="row" style="cursor:pointer" onclick="toast('開啟地圖導航')"><div class="row-ic">🐾</div><div class="row-main"><div class="row-title">喵星人動物醫院</div><div class="row-sub">08:00–22:00・貓咪專科</div></div><div style="color:var(--sage);font-size:12px;font-weight:600;flex-shrink:0">0.8km</div></div>
+    <div class="row" style="cursor:pointer" onclick="toast('開啟地圖導航')"><div class="row-ic">🩺</div><div class="row-main"><div class="row-title">康德動物醫院</div><div class="row-sub">09:00–21:00・一般科</div></div><div style="color:var(--sage);font-size:12px;font-weight:600;flex-shrink:0">1.8km</div></div>
+  </div>
+</div>
+
+<!-- ═══ SHOP ═══ -->
+<div class="page" id="page-shop">
+  <div class="greeting"><div class="greeting-name">推薦商城</div><div class="greeting-sub">根據小橘血檢結果智慧推薦</div></div>
+  <div style="margin:0 16px 10px;background:var(--sky-light);border:1px solid #BAE6FD;border-radius:12px;padding:10px 13px;font-size:12px;color:#0369a1;line-height:1.5">ℹ️ 推薦依據：CREA 偏高・PHOS 需控制。使用前請諮詢獸醫師。</div>
+  <div class="shop-card">
+    <div class="shop-img a">🐟</div>
+    <div class="shop-body"><div class="shop-name">Royal Canin 腎臟處方飼料</div><div class="shop-why">▲ 根據 CREA 數值推薦</div><div class="shop-disc">低磷配方，適合 CKD 第二期貓咪，需獸醫師處方。</div></div>
+    <div class="shop-foot"><div class="shop-price">NT$980<span style="font-size:11px;color:var(--ink-muted)">/400g</span></div><button class="btn btn-sage" onclick="toast('已加入購物車')">加入購物車</button></div>
+  </div>
+  <div class="shop-card">
+    <div class="shop-img b">💊</div>
+    <div class="shop-body"><div class="shop-name">RENAL-K 腎臟補充劑</div><div class="shop-why">▲ 根據 BUN 趨勢推薦</div><div class="shop-disc">含 Omega-3、維他命 B 群，支持腎臟功能。</div></div>
+    <div class="shop-foot"><div class="shop-price">NT$620<span style="font-size:11px;color:var(--ink-muted)">/30包</span></div><button class="btn btn-sage" onclick="toast('已加入購物車')">加入購物車</button></div>
+  </div>
+  <div class="shop-card">
+    <div class="shop-img c">💧</div>
+    <div class="shop-body"><div class="shop-name">寵物自動循環飲水機</div><div class="shop-why">▲ 根據飲水記錄推薦</div><div class="shop-disc">循環水流刺激飲水慾望，適合慢性腎病貓。</div></div>
+    <div class="shop-foot"><div class="shop-price">NT$1,280</div><button class="btn btn-sage" onclick="toast('已加入購物車')">加入購物車</button></div>
+  </div>
+</div>
+
+</div><!-- end main-scroll -->
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="fabAction()">＋</button>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nb active" id="nav-home" onclick="showPage('home')"><span class="nb-ic">🏠</span><span class="nb-lbl">首頁</span></button>
+  <button class="nb" id="nav-blood" onclick="showPage('blood')"><span class="nb-ic">🩸</span><span class="nb-lbl">血檢</span></button>
+  <button class="nb" id="nav-log" onclick="showPage('log')"><span class="nb-ic">📝</span><span class="nb-lbl">日誌</span></button>
+  <button class="nb" id="nav-meds" onclick="showPage('meds')"><span class="nb-ic">💊<span class="bdot"></span></span><span class="nb-lbl">用藥</span></button>
+  <button class="nb" id="nav-more" onclick="openSheet('sheet-more')"><span class="nb-ic">⋯</span><span class="nb-lbl">更多</span></button>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast-el"></div>
+
+<!-- ═══ SHEETS ═══ -->
+
+<!-- More -->
+<div class="overlay" id="sheet-more" onclick="closeSheet('sheet-more')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">更多功能</div>
+    <div class="row" style="cursor:pointer" onclick="navTo('ocr')"><div class="row-ic">📷</div><div class="row-main"><div class="row-title">掃描血檢報告</div><div class="row-sub">OCR 自動辨識</div></div><span style="color:var(--ink-muted)">›</span></div>
+    <div class="row" style="cursor:pointer" onclick="navTo('appt')"><div class="row-ic">📅</div><div class="row-main"><div class="row-title">回診行程管理</div><div class="row-sub">疫苗・健檢・急診</div></div><span style="color:var(--ink-muted)">›</span></div>
+    <div class="row" style="cursor:pointer" onclick="navTo('timer')"><div class="row-ic">⏱</div><div class="row-main"><div class="row-title">癲癇計時器</div><div class="row-sub">緊急症狀紀錄</div></div><span style="color:var(--ink-muted)">›</span></div>
+    <div class="row" style="cursor:pointer" onclick="navTo('shop')"><div class="row-ic">🛍️</div><div class="row-main"><div class="row-title">智慧商城推薦</div><div class="row-sub">依血檢結果推薦</div></div><span style="color:var(--ink-muted)">›</span></div>
+    <div class="row" style="cursor:pointer" onclick="navTo('export')"><div class="row-ic">📄</div><div class="row-main"><div class="row-title">匯出 PDF 報告</div><div class="row-sub">一鍵傳給獸醫師</div></div><span style="color:var(--ink-muted)">›</span></div>
+    <div class="row" style="cursor:pointer" onclick="navTo('notif')"><div class="row-ic">🔔</div><div class="row-main"><div class="row-title">通知中心</div><div class="row-sub">異常預警・提醒</div></div><span style="color:var(--ink-muted)">›</span></div>
+    <div style="height:20px"></div>
+  </div>
+</div>
+
+<!-- Add Pet -->
+<div class="overlay" id="sheet-add-pet" onclick="closeSheet('sheet-add-pet')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">新增寵物</div>
+    <div class="form-group"><label class="form-label">選擇頭像</label>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <div style="width:46px;height:46px;background:var(--sage-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;border:2px solid var(--sage)">🐱</div>
+        <div style="width:46px;height:46px;background:var(--cream);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;border:2px solid var(--border)">🐶</div>
+        <div style="width:46px;height:46px;background:var(--cream);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;border:2px solid var(--border)">🐰</div>
+        <div style="width:46px;height:46px;background:var(--cream);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;border:2px solid var(--border)">🐹</div>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">寵物名字</label><input class="form-input" placeholder="例：小橘"></div>
+    <div class="form-row"><div><label class="form-label">品種</label><input class="form-input" placeholder="橘貓"></div><div><label class="form-label">年齡</label><input class="form-input" type="number" placeholder="歲"></div></div>
+    <div class="form-group"><label class="form-label">性別</label>
+      <div class="chips"><button class="chip sel" onclick="selectChip(this)">公</button><button class="chip" onclick="selectChip(this)">母</button><button class="chip" onclick="selectChip(this)">已絕育</button></div>
+    </div>
+    <div class="form-group"><label class="form-label">既往病史（選填）</label><textarea class="form-input" rows="2" placeholder="例：慢性腎病 CKD 第二期" style="resize:none"></textarea></div>
+    <button class="big-btn sage" onclick="closeSheet('sheet-add-pet');toast('🐾 新增成功！')">新增寵物</button>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<!-- Add Med -->
+<div class="overlay" id="sheet-add-med" onclick="closeSheet('sheet-add-med')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">新增藥品</div>
+    <div class="form-group"><label class="form-label">藥品名稱</label><input class="form-input" placeholder="例：愛貓錠 Fortekor"></div>
+    <div class="form-row"><div><label class="form-label">劑量</label><input class="form-input" placeholder="1/4"></div><div><label class="form-label">單位</label><select class="form-select"><option>錠</option><option>ml</option><option>包</option><option>滴</option></select></div></div>
+    <div class="form-group"><label class="form-label">服藥時機</label>
+      <div class="chips"><button class="chip sel" onclick="selectChip(this)">早餐後</button><button class="chip" onclick="selectChip(this)">午餐前</button><button class="chip" onclick="selectChip(this)">午餐後</button><button class="chip" onclick="selectChip(this)">晚餐後</button><button class="chip" onclick="selectChip(this)">睡前</button></div>
+    </div>
+    <div class="form-row"><div><label class="form-label">開始日期</label><input class="form-input" type="date" value="2025-06-15"></div><div><label class="form-label">總量</label><input class="form-input" type="number" placeholder="100"></div></div>
+    <div class="form-group"><label class="form-label">提醒時間</label><div style="display:flex;gap:7px"><input class="form-input" type="time" value="08:00" style="flex:1"><button class="btn btn-out" onclick="toast('提醒已加入')">＋</button></div></div>
+    <button class="big-btn sage" onclick="closeSheet('sheet-add-med');toast('💊 藥品已新增！')">儲存藥品</button>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<!-- Hospital -->
+<div class="overlay" id="sheet-hospital" onclick="closeSheet('sheet-hospital')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">醫院正常值設定</div>
+    <div style="padding:0 16px 10px;font-size:13px;color:var(--ink-muted)">不同醫院的檢驗機器正常範圍可能不同。</div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="row" style="background:var(--sage-light)"><div class="row-ic">🏥</div><div class="row-main"><div class="row-title">台大動物醫院</div><div class="row-sub">目前使用中</div></div><span style="color:var(--sage)">✓</span></div>
+      <div class="row" style="cursor:pointer" onclick="toast('切換至喵星人動物醫院')"><div class="row-ic">🐾</div><div class="row-main"><div class="row-title">喵星人動物醫院</div></div></div>
+    </div>
+    <div class="form-row"><div><label class="form-label">BUN 下限</label><input class="form-input" value="16" type="number"></div><div><label class="form-label">BUN 上限</label><input class="form-input" value="36" type="number"></div></div>
+    <div class="form-row"><div><label class="form-label">CREA 下限</label><input class="form-input" value="0.8" type="number" step="0.1"></div><div><label class="form-label">CREA 上限</label><input class="form-input" value="1.8" type="number" step="0.1"></div></div>
+    <button class="big-btn sage" onclick="closeSheet('sheet-hospital');toast('✅ 設定已儲存')">儲存設定</button>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<!-- Add Appt -->
+<div class="overlay" id="sheet-add-appt" onclick="closeSheet('sheet-add-appt')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">新增回診預約</div>
+    <div class="form-group"><label class="form-label">事由</label><input class="form-input" placeholder="腎臟科定期追蹤"></div>
+    <div class="form-row"><div><label class="form-label">日期</label><input class="form-input" type="date" value="2025-07-22"></div><div><label class="form-label">時間</label><input class="form-input" type="time" value="09:30"></div></div>
+    <div class="form-group"><label class="form-label">醫院</label><input class="form-input" placeholder="台大動物醫院"></div>
+    <div class="form-group"><label class="form-label">備註</label><textarea class="form-input" rows="2" placeholder="問診重點・需帶物品" style="resize:none"></textarea></div>
+    <div style="display:flex;align-items:center;padding:0 16px 12px;gap:10px"><div style="flex:1;font-size:14px">同步至手機行事曆</div><div class="toggle"></div></div>
+    <button class="big-btn sage" onclick="closeSheet('sheet-add-appt');toast('📅 回診已新增！')">新增預約</button>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<!-- Add Log -->
+<div class="overlay" id="sheet-add-log" onclick="closeSheet('sheet-add-log')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">今日生活記錄</div>
+    <div class="form-group"><label class="form-label">飲水量</label><div style="display:flex;align-items:center;gap:8px"><input class="form-input" type="number" placeholder="0" style="width:90px"> <span>ml</span></div></div>
+    <div class="form-group"><label class="form-label">體重</label><div style="display:flex;align-items:center;gap:8px"><input class="form-input" type="number" placeholder="4.2" step="0.1" style="width:90px"> <span>kg</span></div></div>
+    <div class="form-group"><label class="form-label">小便次數</label><div class="chips"><button class="chip" onclick="selectChip(this)">1次</button><button class="chip sel" onclick="selectChip(this)">2次</button><button class="chip" onclick="selectChip(this)">3次</button><button class="chip" onclick="selectChip(this)">4次以上</button></div></div>
+    <div class="form-group"><label class="form-label">大便狀況</label><div class="chips"><button class="chip sel" onclick="selectChip(this)">正常成形</button><button class="chip" onclick="selectChip(this)">偏軟</button><button class="chip" onclick="selectChip(this)">腹瀉</button><button class="chip" onclick="selectChip(this)">便秘</button></div></div>
+    <div class="form-group"><label class="form-label">整體狀態</label><div class="chips"><button class="chip" onclick="selectChip(this)" style="font-size:18px">😊</button><button class="chip sel" onclick="selectChip(this)" style="font-size:18px">😐</button><button class="chip" onclick="selectChip(this)" style="font-size:18px">😟</button></div></div>
+    <div class="form-group"><label class="form-label">備註</label><textarea class="form-input" rows="2" placeholder="今日觀察" style="resize:none"></textarea></div>
+    <button class="big-btn sage" onclick="closeSheet('sheet-add-log');toast('📝 日誌已儲存！')">儲存記錄</button>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<!-- Toilet -->
+<div class="overlay" id="sheet-toilet" onclick="closeSheet('sheet-toilet')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">排泄記錄</div>
+    <div class="form-group"><label class="form-label">種類</label><div class="chips"><button class="chip sel" onclick="selectChip(this)">🟡 小便</button><button class="chip" onclick="selectChip(this)">🟤 大便</button></div></div>
+    <div class="form-group"><label class="form-label">顏色 / 狀態</label><div class="chips"><button class="chip sel" onclick="selectChip(this)">淡黃（正常）</button><button class="chip" onclick="selectChip(this)">深黃</button><button class="chip" onclick="selectChip(this)">橘色</button><button class="chip" onclick="selectChip(this)">帶血</button></div></div>
+    <div class="form-group"><label class="form-label">尿量</label><div class="chips"><button class="chip" onclick="selectChip(this)">偏少</button><button class="chip sel" onclick="selectChip(this)">正常</button><button class="chip" onclick="selectChip(this)">偏多</button></div></div>
+    <div class="form-group"><label class="form-label">備註</label><textarea class="form-input" rows="2" placeholder="異常狀況" style="resize:none"></textarea></div>
+    <button class="big-btn sage" onclick="closeSheet('sheet-toilet');toast('✅ 排泄紀錄已儲存！')">儲存</button>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<!-- Journal -->
+<div class="overlay" id="sheet-add-journal" onclick="closeSheet('sheet-add-journal')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">新增照護日誌</div>
+    <div style="margin:0 16px 13px;height:130px;background:var(--cream);border:2px dashed var(--border);border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer" onclick="toast('開啟相機…')"><div style="font-size:30px">📸</div><div style="font-size:13px;color:var(--ink-muted)">拍照或從相簿選取</div></div>
+    <div class="form-group"><label class="form-label">標題</label><input class="form-input" placeholder="午覺時光"></div>
+    <div class="form-group"><label class="form-label">心情描述</label><textarea class="form-input" rows="3" placeholder="今天小橘的狀態如何…" style="resize:none"></textarea></div>
+    <button class="big-btn sage" onclick="closeSheet('sheet-add-journal');toast('📸 日誌已新增！')">發布日誌</button>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<!-- Profile -->
+<div class="overlay" id="sheet-profile" onclick="closeSheet('sheet-profile')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div style="text-align:center;padding:8px 16px 16px">
+      <div style="width:60px;height:60px;background:var(--sage);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 9px">🐱</div>
+      <div style="font-size:16px;font-weight:600">陳先生</div>
+      <div style="font-size:13px;color:var(--ink-muted)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="89eae1ece7c9ecf1e8e4f9e5eca7eae6e4">[email&#160;protected]</a></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="row"><div class="row-ic">🔔</div><div class="row-main"><div class="row-title">推播通知</div></div><div class="toggle" onclick="this.classList.toggle('off')"></div></div>
+      <div class="row"><div class="row-ic">🔒</div><div class="row-main"><div class="row-title">資料隱私與安全</div><div class="row-sub">醫療數據加密儲存</div></div><span style="color:var(--ink-muted)">›</span></div>
+      <div class="row"><div class="row-ic">☁️</div><div class="row-main"><div class="row-title">雲端備份</div><div class="row-sub">最後備份：今天 09:00</div></div><div class="toggle" onclick="this.classList.toggle('off')"></div></div>
+    </div>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+</div><!-- end app -->
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ─── DATA ───
+const indicators = {
+  'BUN':  { lbl:'BUN 尿素氮', unit:'mg/dL', val:'36', type:'warn', range:'16–36', desc:'BUN（尿素氮）是腎臟過濾蛋白廢物的指標。升高代表腎功能可能下降或蛋白質攝取過多。連續上升趨勢需密切追蹤。', path:'M18,82 L76,76 L134,70 L192,60 L250,48 L302,38', fill:'M18,82 L76,76 L134,70 L192,60 L250,48 L302,38 L302,96 L18,96Z', color:'#D97706', vs:'28', ve:'36', cy:[82,76,70,60,48,38] },
+  'CREA': { lbl:'CREA 肌酸酐', unit:'mg/dL', val:'1.9', type:'high', range:'0.8–1.8', desc:'CREA（肌酸酐）是腎臟過濾功能最重要的指標之一。持續偏高需密切追蹤，建議定期複查。', path:'M18,79 L76,75 L134,74 L192,69 L250,63 L302,57', fill:'M18,79 L76,75 L134,74 L192,69 L250,63 L302,57 L302,96 L18,96Z', color:'#BE6B72', vs:'1.7', ve:'1.9', cy:[79,75,74,69,63,57] },
+  'SDMA': { lbl:'SDMA 早期腎損', unit:'μg/dL', val:'14', type:'warn', range:'<14', desc:'SDMA 是早期腎臟損傷的敏感指標，比 CREA 更早偵測問題（約腎功能喪失 25% 即可偵測）。', path:'M18,66 L76,67 L134,66 L192,67 L250,66 L302,65', fill:'M18,66 L76,67 L134,66 L192,67 L250,66 L302,65 L302,96 L18,96Z', color:'#D97706', vs:'13', ve:'14', cy:[66,67,66,67,66,65] },
+  'ALT':  { lbl:'ALT 肝指數', unit:'U/L', val:'42', type:'ok', range:'12–130', desc:'ALT 是肝細胞受損的指標。目前正常穩定，無需擔心。', path:'M18,55 L76,58 L134,52 L192,56 L250,60 L302,54', fill:'M18,55 L76,58 L134,52 L192,56 L250,60 L302,54 L302,96 L18,96Z', color:'#7C9E8A', vs:'58', ve:'42', cy:[55,58,52,56,60,54] },
+  'PHOS': { lbl:'PHOS 磷', unit:'mg/dL', val:'5.1', type:'ok', range:'2.6–6.0', desc:'腎病貓需嚴格控制磷攝取，目前在服用磷結合劑，數值在正常範圍內。', path:'M18,72 L76,70 L134,70 L192,68 L250,67 L302,65', fill:'M18,72 L76,70 L134,70 L192,68 L250,67 L302,65 L302,96 L18,96Z', color:'#7C9E8A', vs:'5.8', ve:'5.1', cy:[72,70,70,68,67,65] },
+  'RBC':  { lbl:'RBC 紅血球', unit:'×10⁶/μL', val:'6.8', type:'ok', range:'5.0–10.0', desc:'紅血球數量反映是否貧血。腎病晚期可能引發貧血，目前在正常範圍內。', path:'M18,58 L76,58 L134,56 L192,57 L250,56 L302,57', fill:'M18,58 L76,58 L134,56 L192,57 L250,56 L302,57 L302,96 L18,96Z', color:'#7C9E8A', vs:'6.8', ve:'6.8', cy:[58,58,56,57,56,57] },
+  'WBC':  { lbl:'WBC 白血球', unit:'×10³/μL', val:'8.2', type:'ok', range:'5.5–19.5', desc:'白血球數量反映免疫系統狀態，目前正常。', path:'M18,56 L76,56 L134,58 L192,56 L250,57 L302,56', fill:'M18,56 L76,56 L134,58 L192,56 L250,57 L302,56 L302,96 L18,96Z', color:'#7C9E8A', vs:'8.0', ve:'8.2', cy:[56,56,58,56,57,56] },
+  '體重': { lbl:'體重', unit:'kg', val:'4.2', type:'ok', range:'3.5–5.0', desc:'體重與血檢指標並列追蹤，有助於分析營養吸收與食慾狀況。', path:'M18,58 L76,55 L134,58 L192,60 L250,65 L302,68', fill:'M18,58 L76,55 L134,58 L192,60 L250,65 L302,68 L302,96 L18,96Z', color:'#4A90B8', vs:'4.5', ve:'4.2', cy:[58,55,58,60,65,68] },
+};
+
+const colorMap = { warn:'#D97706', high:'#BE6B72', ok:'#7C9E8A', low:'#4A90B8' };
+
+// ─── PAGE NAV ───
+let currentPage = 'home';
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+  const nb = document.getElementById('nav-' + id);
+  if (nb) nb.classList.add('active');
+  currentPage = id;
+  document.getElementById('main-scroll').scrollTop = 0;
+  const fab = document.getElementById('fab');
+  fab.style.display = ['export','notif','shop','timer'].includes(id) ? 'none' : 'flex';
+}
+function navTo(id) {
+  closeSheet('sheet-more');
+  setTimeout(() => showPage(id), 160);
+}
+
+// ─── SHEETS ───
+function openSheet(id) {
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('show'); }
+}
+function closeSheet(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show');
+}
+
+// ─── FAB ───
+function fabAction() {
+  const map = { blood:'ocr', meds:'sheet-add-med', log:'sheet-add-log', appt:'sheet-add-appt' };
+  const target = map[currentPage];
+  if (!target) { showPage('ocr'); return; }
+  if (target.startsWith('sheet')) openSheet(target);
+  else showPage(target);
+}
+
+// ─── CHART SWITCHING ───
+function switchChart(btn, key, type) {
+  document.querySelectorAll('#chart-tabs .ctab').forEach(b => {
+    b.className = 'ctab';
+  });
+  btn.classList.add('ctab', 'active', type);
+  renderChart(key);
+}
+function switchChartByRow(key, type) {
+  const btns = document.querySelectorAll('#chart-tabs .ctab');
+  btns.forEach(b => { b.className = 'ctab'; });
+  btns.forEach(b => { if (b.textContent.trim() === key) { b.classList.add('ctab','active',type); } });
+  renderChart(key);
+  // scroll chart into view
+  document.getElementById('main-chart-wrap').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function renderChart(key) {
+  const d = indicators[key];
+  if (!d) return;
+  const color = colorMap[d.type] || '#7C9E8A';
+  // update gradient color
+  document.getElementById('grad-stop').setAttribute('stop-color', color);
+  // update paths
+  document.getElementById('chart-fill').setAttribute('d', d.fill);
+  document.getElementById('chart-fill').setAttribute('fill', 'url(#line-grad)');
+  document.getElementById('chart-line').setAttribute('d', d.path);
+  document.getElementById('chart-line').setAttribute('stroke', color);
+  // update circles
+  const xs = [18,76,134,192,250,302];
+  for (let i=1;i<=6;i++) {
+    const c = document.getElementById('c'+i);
+    c.setAttribute('cx', xs[i-1]);
+    c.setAttribute('cy', d.cy[i-1]);
+    c.setAttribute('stroke', color);
+    if (i<6) { c.setAttribute('r','3'); c.setAttribute('fill','white'); }
+    else { c.setAttribute('r','4'); c.setAttribute('fill',color); c.setAttribute('stroke','white'); }
+  }
+  document.getElementById('val-start').setAttribute('fill', color);
+  document.getElementById('val-start').setAttribute('y', d.cy[0]-4);
+  document.getElementById('val-start').textContent = d.vs;
+  document.getElementById('val-end').setAttribute('fill', color);
+  document.getElementById('val-end').setAttribute('y', d.cy[5]-4);
+  document.getElementById('val-end').textContent = d.ve;
+  // update labels
+  document.getElementById('chart-indicator-lbl').textContent = d.lbl;
+  document.getElementById('chart-current-val').textContent = d.val;
+  document.getElementById('chart-current-val').style.color = color;
+  document.getElementById('indicator-desc').innerHTML = '💡 <strong>' + d.lbl + '</strong>' + d.desc.replace(d.lbl,'');
+}
+
+// ─── HISTORY NAV ───
+let histIdx = 7; // 0-based, max index 7 (8 records)
+const histDates = ['2024/07/10','2024/09/15','2024/11/20','2025/01/08','2025/02/22','2025/04/08','2025/05/12','2025/06/15'];
+function changeRecord(dir) {
+  histIdx = Math.max(0, Math.min(7, histIdx + dir));
+  document.getElementById('hist-date').textContent = histDates[histIdx];
+  document.getElementById('hist-index').textContent = '第 ' + (histIdx+1) + ' 筆' + (histIdx===7 ? '（最新）' : '');
+  document.getElementById('hprev').disabled = histIdx === 0;
+  document.getElementById('hnext').disabled = histIdx === 7;
+  document.getElementById('hnext').className = histIdx === 7 ? 'hist-btn current' : 'hist-btn';
+  const cb = document.getElementById('compare-banner');
+  cb.style.display = histIdx < 7 ? 'flex' : 'none';
+  toast('查看 ' + histDates[histIdx] + ' 的血檢數據');
+}
+
+// ─── OCR ───
+let scanning = false;
+function simulateScan() {
+  if (scanning) return; scanning = true;
+  document.getElementById('upload-zone').style.display = 'none';
+  document.getElementById('ocr-result').classList.add('show');
+  document.getElementById('ocr-back-btn').style.display = 'none';
+  document.getElementById('shimmer-wrap').style.display = 'block';
+  document.getElementById('ocr-card').style.display = 'none';
+  document.getElementById('ocr-save-btn').style.display = 'none';
+  document.getElementById('date-input-wrap').style.display = 'none';
+  const st = document.getElementById('scan-status-el');
+  st.textContent = '辨識中，請稍候…'; st.className = 'scan-status loading';
+  // step 2 done → step 3 active
+  const s2 = document.getElementById('s2');
+  s2.style.background = 'var(--sage)'; s2.style.color = 'white'; s2.textContent = '✓';
+  document.getElementById('l3').style.background = 'var(--sage)';
+  const s3 = document.getElementById('s3');
+  s3.style.background = 'var(--ink)'; s3.style.color = 'white';
+  document.getElementById('s3l').style.color = 'var(--ink)'; document.getElementById('s3l').style.fontWeight = '500';
+  setTimeout(() => {
+    document.getElementById('shimmer-wrap').style.display = 'none';
+    document.getElementById('ocr-card').style.display = 'block';
+    document.getElementById('date-input-wrap').style.display = 'block';
+    document.getElementById('ocr-save-btn').style.display = 'flex';
+    document.getElementById('ocr-back-btn').style.display = 'flex';
+    st.textContent = '✓ 辨識完成，請確認數值'; st.className = 'scan-status done';
+    scanning = false;
+  }, 2000);
+}
+function ocrGoBack() {
+  // hide result, show upload zone, reset steps back to step 2
+  document.getElementById('ocr-result').classList.remove('show');
+  document.getElementById('upload-zone').style.display = '';
+  scanning = false;
+  // reset step 2 back to active (not done), step 3 back to inactive
+  const s2 = document.getElementById('s2');
+  s2.style.background = 'var(--ink)'; s2.style.color = 'white'; s2.textContent = '2';
+  document.getElementById('l3').style.background = 'var(--border)';
+  const s3 = document.getElementById('s3');
+  s3.style.background = 'var(--border)'; s3.style.color = 'var(--ink-muted)'; s3.textContent = '3';
+  document.getElementById('s3l').style.color = 'var(--ink-muted)'; document.getElementById('s3l').style.fontWeight = '400';
+  document.getElementById('main-scroll').scrollTop = 0;
+}
+function saveOcr() {
+  // ── 驗證所有 OCR 欄位 ──
+  const inputs = document.querySelectorAll('#ocr-card .edit-field');
+  let allOk = true;
+  const scanData = { date: document.querySelector('#date-input-wrap input')?.value || todayStr() };
+  inputs.forEach(input => {
+    const key = input.closest('tr').querySelector('td:first-child').textContent.trim();
+    const isOptional = input.placeholder === '？';
+    const r = Validator.numeric(input, { min: 0, required: !isOptional });
+    if (!r.ok && !isOptional) allOk = false;
+    if (r.value !== null) scanData[key] = r.value;
+  });
+  if (!allOk) {
+    toast('⚠ 請修正紅色標示的欄位');
+    return;
+  }
+  // ── 存入 DB ──
+  DB.insert('bloodScans', { petId: 0, values: scanData });
+  // ── 更新步驟 ──
+  const s4 = document.getElementById('s4');
+  s4.style.background='var(--sage)'; s4.style.color='white'; s4.textContent='✓';
+  document.getElementById('l4').style.background='var(--sage)';
+  setTimeout(() => {
+    showPage('blood');
+    toast('✅ 血檢數據已儲存！');
+    document.getElementById('ocr-result').classList.remove('show');
+    document.getElementById('upload-zone').style.display = '';
+    scanning = false;
+    [['s2',2],['s3',3],['s4',4]].forEach(([id, num]) => {
+      const el = document.getElementById(id);
+      if (id === 's2') { el.style.background='var(--sage)'; el.style.color='white'; el.textContent='✓'; }
+      else { el.style.background='var(--border)'; el.style.color='var(--ink-muted)'; el.textContent=String(num); }
+    });
+    document.getElementById('l3').style.background='var(--border)';
+    document.getElementById('l4').style.background='var(--border)';
+    document.getElementById('s3l').style.color='var(--ink-muted)';
+    document.getElementById('s3l').style.fontWeight='400';
+  }, 380);
+}
+
+// ─── CHIP SELECT (scoped) ───
+function selectChip(el) {
+  const container = el.closest('.chips, .chart-tabs, [style*="display:flex"]');
+  if (container) container.querySelectorAll('.chip,.ctab').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function selectTab(el) {
+  el.closest('div').querySelectorAll('.ctab').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// ─── STORAGE LAYER (localStorage 持久化)───
+// ═══════════════════════════════════════════
+const DB = {
+  _key: 'pawtrack_v1',
+  _cache: null,
+  load() {
+    if (this._cache) return this._cache;
+    try {
+      const raw = localStorage.getItem(this._key);
+      this._cache = raw ? JSON.parse(raw) : this._defaultData();
+    } catch(e) { this._cache = this._defaultData(); }
+    return this._cache;
+  },
+  save() {
+    try { localStorage.setItem(this._key, JSON.stringify(this._cache)); }
+    catch(e) { toast('⚠ 儲存空間不足'); }
+  },
+  get(col) { return this.load()[col] || []; },
+  insert(col, record) {
+    const db = this.load();
+    if (!db[col]) db[col] = [];
+    const entry = { id: Date.now(), ts: new Date().toISOString(), ...record };
+    db[col].unshift(entry);
+    this.save();
+    return entry;
+  },
+  getWater() {
+    const wl = this.load().waterLog || {};
+    return wl.date === todayStr() ? (wl.ml || 0) : 0;
+  },
+  setWater(ml) {
+    const db = this.load();
+    db.waterLog = { date: todayStr(), ml };
+    this.save();
+  },
+  _defaultData() {
+    return {
+      medLogs: [{ id:1001, ts:'2025-06-15T08:12:00', medRowId:'hm1', medName:'愛貓錠', petId:0 }],
+      seizureLogs: [
+        { id:2001, ts:'2025-06-10T03:22:00', duration:102, petId:0 },
+        { id:2002, ts:'2025-05-28T11:05:00', duration:58,  petId:0 }
+      ],
+      heartLogs: [
+        { id:3001, ts:'2025-06-14T20:10:00', bpm:128, petId:0 },
+        { id:3002, ts:'2025-06-10T08:30:00', bpm:152, petId:0 },
+        { id:3003, ts:'2025-05-28T19:45:00', bpm:136, petId:0 }
+      ],
+      breathLogs: [
+        { id:4001, ts:'2025-06-14T21:00:00', rpm:24, petId:0 },
+        { id:4002, ts:'2025-06-10T09:00:00', rpm:38, petId:0 },
+        { id:4003, ts:'2025-05-28T20:00:00', rpm:22, petId:0 }
+      ],
+      bloodScans: [],
+      waterLog: { date:'', ml:0 }
+    };
+  }
+};
+
+function fmtTS(iso) {
+  const d = new Date(iso);
+  return (d.getMonth()+1)+'/'+d.getDate()+' '
+    +String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function fmtDur(secs) {
+  const m = Math.floor(secs/60), s = secs%60;
+  return (m>0 ? m+'分' : '')+s+'秒';
+}
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+// ─── 從 DB 渲染所有 Log 列表 ───
+function renderAllLogs() {
+  // Seizure
+  const sl = document.getElementById('seizure-log-list');
+  if (sl) {
+    sl.innerHTML = '';
+    DB.get('seizureLogs').forEach(r => {
+      const long = r.duration >= 300;
+      sl.insertAdjacentHTML('beforeend',
+        `<div class="tlog-item">
+          <span style="color:var(--rose);font-weight:500">${fmtTS(r.ts)}</span>
+          <span>⚡ <strong>${fmtDur(r.duration)}</strong></span>
+          <span class="badge ${long?'b-high':'b-warn'}">${long?'⚠ 超過5分':'已記錄'}</span>
+        </div>`);
+    });
+  }
+  // Heart
+  const hl = document.getElementById('heart-log-list');
+  if (hl) {
+    hl.innerHTML = '';
+    DB.get('heartLogs').forEach(r => {
+      const ok=r.bpm>=120&&r.bpm<=140, fast=r.bpm>160;
+      hl.insertAdjacentHTML('beforeend',
+        `<div class="tlog-item">
+          <span style="color:var(--ink-light);font-weight:500">${fmtTS(r.ts)}</span>
+          <span>❤️ <strong>${r.bpm}</strong> 次/分</span>
+          <span class="badge ${ok?'b-ok':fast?'b-high':'b-warn'}">${ok?'正常':fast?'偏快':'注意'}</span>
+        </div>`);
+    });
+  }
+  // Breath
+  const bl = document.getElementById('breath-log-list');
+  if (bl) {
+    bl.innerHTML = '';
+    DB.get('breathLogs').forEach(r => {
+      const ok=r.rpm>=20&&r.rpm<=30, fast=r.rpm>40;
+      bl.insertAdjacentHTML('beforeend',
+        `<div class="tlog-item">
+          <span style="color:var(--ink-light);font-weight:500">${fmtTS(r.ts)}</span>
+          <span>🌬 <strong>${r.rpm}</strong> 次/分</span>
+          <span class="badge ${ok?'b-ok':fast?'b-high':'b-warn'}">${ok?'正常':fast?'偏快':'注意'}</span>
+        </div>`);
+    });
+  }
+  // Today meds
+  const today = todayStr();
+  DB.get('medLogs').filter(r => r.ts.startsWith(today)).forEach(r => {
+    ['hm1','hm2','mm1','mm2'].forEach(id => {
+      if (r.medRowId !== id) return;
+      const row = document.getElementById(id);
+      const btn = row?.querySelector('.check-btn');
+      if (row && btn && !btn.disabled) {
+        btn.textContent='✓'; btn.classList.add('checked'); btn.disabled=true;
+        row.classList.add('done');
+        const d = row.querySelector('.med-detail');
+        if (d) d.textContent = '✓ 已服用・'+fmtTS(r.ts).split(' ')[1];
+      }
+    });
+  });
+  // Water today
+  const wml = DB.getWater();
+  waterMl = wml;
+  const pct = (wml/250*100).toFixed(0);
+  const wb = document.getElementById('water-bar');
+  const wl2 = document.getElementById('water-label');
+  if (wb) wb.style.width = pct+'%';
+  if (wl2) wl2.textContent = wml+' / 250ml';
+}
+
+// ═══════════════════════════════════════════
+// ─── INPUT VALIDATION LAYER ───
+// ═══════════════════════════════════════════
+const Validator = {
+  // 驗證欄位，回傳 { ok, value, msg }
+  numeric(input, options={}) {
+    const raw = input.value.trim();
+    const { min, max, required=true, integer=false } = options;
+    if (!raw) {
+      if (required) return this._fail(input, '此欄位為必填');
+      return { ok:true, value:null };
+    }
+    const pattern = integer ? /^\d+$/ : /^-?\d*\.?\d+$/;
+    if (!pattern.test(raw)) return this._fail(input, integer?'請輸入整數':'請輸入數字');
+    const num = parseFloat(raw);
+    if (min!==undefined && num<min) return this._fail(input, `最小值 ${min}`);
+    if (max!==undefined && num>max) return this._fail(input, `最大值 ${max}`);
+    this._pass(input);
+    return { ok:true, value:num };
+  },
+  _fail(input, msg) {
+    input.style.borderColor='var(--rose)';
+    input.style.background='var(--rose-light)';
+    let tip = input.parentElement.querySelector('.val-tip');
+    if (!tip) {
+      tip = document.createElement('span');
+      tip.className = 'val-tip';
+      tip.style.cssText = 'font-size:11px;color:var(--rose);display:block;margin-top:3px;';
+      input.parentElement.appendChild(tip);
+    }
+    tip.textContent = msg;
+    return { ok:false, value:null, msg };
+  },
+  _pass(input) {
+    input.style.borderColor='var(--sage)';
+    input.style.background='var(--white)';
+    const tip = input.parentElement.querySelector('.val-tip');
+    if (tip) tip.remove();
+  },
+  clear(input) {
+    input.style.borderColor=''; input.style.background='';
+    const tip = input.parentElement.querySelector('.val-tip');
+    if (tip) tip.remove();
+  }
+};
+
+// 對所有 OCR edit-field 附加即時過濾 + 驗證
+function attachEditFieldValidation() {
+  document.querySelectorAll('.edit-field').forEach(input => {
+    input.addEventListener('input', () => {
+      // 即時過濾：只留數字、小數點
+      const cur = input.value;
+      const cleaned = cur.replace(/[^0-9.]/g, '');
+      // 防止多個小數點
+      const parts = cleaned.split('.');
+      const safe = parts.length > 2 ? parts[0]+'.'+parts.slice(1).join('') : cleaned;
+      if (cur !== safe) input.value = safe;
+      // 即時視覺回饋
+      if (!safe) { Validator.clear(input); return; }
+      if (isNaN(parseFloat(safe))) Validator._fail(input, '請輸入數字');
+      else Validator._pass(input);
+    });
+    input.addEventListener('focus', () => {
+      if (input.classList.contains('err')) {
+        input.classList.remove('err');
+        input.value = '';
+        Validator.clear(input);
+      }
+    });
+  });
+}
+
+// 掃描儲存前的批次驗證
+function validateOcrFields() {
+  const inputs = document.querySelectorAll('#ocr-card .edit-field');
+  let allOk = true;
+  const results = {};
+  inputs.forEach(input => {
+    const key = input.closest('tr').querySelector('td:first-child').textContent.trim();
+    // ALT 欄位標記為 optional（err class = 不確定）
+    const isOptional = input.classList.contains('err') || input.placeholder === '？';
+    const r = Validator.numeric(input, { min:0, required: !isOptional });
+    if (!r.ok && !isOptional) allOk = false;
+    if (r.value !== null) results[key] = r.value;
+  });
+  return { ok: allOk, data: results };
+}
+
+// ─── MED CHECK（持久化版）───
+function checkMed(btn, rowId) {
+  btn.textContent='✓'; btn.classList.add('checked'); btn.disabled=true;
+  const row = document.getElementById(rowId);
+  const medName = row?.querySelector('.med-name')?.textContent || '';
+  if (row) {
+    row.classList.add('done');
+    const d = row.querySelector('.med-detail');
+    if (d) d.textContent = '✓ 已服用・'+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  }
+  DB.insert('medLogs', { medRowId:rowId, medName, petId:0 });
+  toast('✅ 已記錄服藥！');
+}
+
+// ─── PET SWITCH ───
+const pets = [
+  { name:'小橘', breed:'橘貓・11歲', emoji:'🐱', greeting:'小橘的今天 🐾', sub:'最後更新：2025/06/15・共 8 次血檢紀錄', bun:'36 mg/dL', crea:'1.9 mg/dL', weight:'4.2 kg', next:'7/22', alert:true },
+  { name:'阿柴', breed:'柴犬・4歲',  emoji:'🐶', greeting:'阿柴的今天 🐕', sub:'最後更新：2025/06/01・共 3 次血檢紀錄', bun:'22 mg/dL', crea:'1.0 mg/dL', weight:'8.6 kg', next:'8/15', alert:false },
+];
+let activePet = 0;
+function switchPet(idx) {
+  if (idx === activePet) return;
+  activePet = idx;
+  const p = pets[idx];
+  // update chips — only inside #page-home .pet-strip
+  document.querySelectorAll('#page-home .pet-chip[data-petid]').forEach(c => {
+    c.classList.toggle('active', Number(c.dataset.petid) === idx);
+  });
+  // update greeting
+  document.getElementById('home-greeting-name').textContent = p.greeting;
+  document.getElementById('home-greeting-sub').textContent = p.sub;
+  // update stats
+  document.getElementById('home-stat-weight').textContent = p.weight;
+  document.getElementById('home-stat-crea').textContent = p.crea;
+  document.getElementById('home-stat-next').textContent = p.next;
+  // alert banner
+  document.getElementById('home-alert').style.display = p.alert ? 'flex' : 'none';
+  toast('已切換至 ' + p.name + ' 的紀錄');
+}
+
+// ─── WATER ───
+let waterMl = 0;
+function addWater(ml) {
+  waterMl = Math.min(waterMl + ml, 250);
+  DB.setWater(waterMl);
+  const pct = (waterMl / 250 * 100).toFixed(0);
+  const bar = document.getElementById('water-bar');
+  const lbl = document.getElementById('water-label');
+  if (bar) bar.style.width = pct + '%';
+  if (lbl) lbl.textContent = waterMl + ' / 250ml';
+  toast('💧 ' + waterMl + ' / 250ml');
+}
+
+// ─── TIMER MODE SWITCH ───
+let currentTimerMode = 'seizure';
+function switchTimerMode(mode) {
+  currentTimerMode = mode;
+  ['seizure','heart','breath'].forEach(m => {
+    const btn = document.getElementById('tmode-' + m);
+    const panel = document.getElementById('panel-' + m);
+    const isActive = m === mode;
+    panel.style.display = isActive ? 'block' : 'none';
+    if (m === 'seizure') {
+      btn.style.background = isActive ? 'var(--rose)' : 'var(--white)';
+      btn.style.color = isActive ? 'white' : 'var(--ink-light)';
+      btn.style.borderColor = isActive ? 'var(--rose)' : 'var(--border)';
+    } else if (m === 'heart') {
+      btn.style.background = isActive ? 'var(--rose-light)' : 'var(--white)';
+      btn.style.color = isActive ? 'var(--rose)' : 'var(--ink-light)';
+      btn.style.borderColor = isActive ? 'var(--rose)' : 'var(--border)';
+    } else {
+      btn.style.background = isActive ? 'var(--sage-light)' : 'var(--white)';
+      btn.style.color = isActive ? 'var(--sage)' : 'var(--ink-light)';
+      btn.style.borderColor = isActive ? 'var(--sage)' : 'var(--border)';
+    }
+  });
+}
+
+// ─── SEIZURE TIMER ───
+let timerInterval = null, timerSecs = 0, timerRunning = false;
+function timerStart() {
+  timerRunning = true; timerSecs = 0;
+  document.getElementById('t-start').style.display = 'none';
+  document.getElementById('t-stop').style.display = 'flex';
+  document.getElementById('t-reset').style.display = 'flex';
+  document.getElementById('timer-num').className = 'timer-num running';
+  document.getElementById('timer-sub').textContent = '計時中…立即記錄發作時間';
+  timerInterval = setInterval(() => {
+    timerSecs++;
+    const m = String(Math.floor(timerSecs/60)).padStart(2,'0');
+    const s = String(timerSecs%60).padStart(2,'0');
+    document.getElementById('timer-num').textContent = m + ':' + s;
+    if (timerSecs === 300) toast('⚠️ 已超過 5 分鐘，請立即就醫！');
+  }, 1000);
+}
+function timerStop() {
+  clearInterval(timerInterval); timerRunning = false;
+  document.getElementById('t-stop').style.display = 'none';
+  document.getElementById('t-start').style.display = 'flex';
+  document.getElementById('t-save').style.display = 'flex';
+  document.getElementById('timer-num').className = 'timer-num stopped';
+  document.getElementById('timer-sub').textContent = '計時結束，可儲存此次紀錄';
+}
+function timerReset() {
+  clearInterval(timerInterval); timerRunning = false; timerSecs = 0;
+  document.getElementById('timer-num').textContent = '00:00';
+  document.getElementById('timer-num').className = 'timer-num';
+  document.getElementById('t-start').style.display = 'flex';
+  document.getElementById('t-stop').style.display = 'none';
+  document.getElementById('t-reset').style.display = 'none';
+  document.getElementById('t-save').style.display = 'none';
+  document.getElementById('timer-sub').textContent = '按下開始記錄發作時間';
+}
+function timerSave() {
+  DB.insert('seizureLogs', { duration: timerSecs, petId: 0 });
+  renderAllLogs();
+  toast('💾 已儲存：發作時長 ' + fmtDur(timerSecs));
+  document.getElementById('t-save').style.display = 'none';
+  timerReset();
+}
+
+// ─── HEART RATE ───
+let heartInterval = null, heartSecs = 0, heartTaps = 0, heartDone = false;
+const HEART_DURATION = 15;
+
+function heartStart() {
+  if (heartInterval) return;
+  heartTaps = 0; heartSecs = 0; heartDone = false;
+  document.getElementById('heart-count').textContent = '0';
+  document.getElementById('heart-count').style.color = 'var(--rose)';
+  document.getElementById('heart-result').style.display = 'none';
+  document.getElementById('heart-sub').textContent = '每感覺到一次心跳，點擊計數';
+  document.getElementById('h-tap-btn').disabled = false;
+  document.getElementById('h-tap-btn').style.opacity = '1';
+  document.getElementById('h-start-btn').textContent = '進行中';
+  document.getElementById('h-save-btn').style.display = 'none';
+  // ring
+  const ring = document.getElementById('heart-ring');
+  const circumference = 213.6;
+  ring.style.transition = 'none';
+  ring.style.strokeDashoffset = circumference;
+  setTimeout(() => { ring.style.transition = 'stroke-dashoffset ' + HEART_DURATION + 's linear'; ring.style.strokeDashoffset = 0; }, 50);
+  heartInterval = setInterval(() => {
+    heartSecs++;
+    const remaining = HEART_DURATION - heartSecs;
+    document.getElementById('heart-countdown').textContent = remaining;
+    if (heartSecs >= HEART_DURATION) { heartFinish(); }
+  }, 1000);
+}
+function heartTap() {
+  if (heartDone || !heartInterval) return;
+  heartTaps++;
+  document.getElementById('heart-count').textContent = heartTaps;
+}
+function heartFinish() {
+  clearInterval(heartInterval); heartInterval = null; heartDone = true;
+  document.getElementById('h-tap-btn').disabled = true;
+  document.getElementById('h-tap-btn').style.opacity = '.5';
+  document.getElementById('h-start-btn').textContent = '完成';
+  const bpm = heartTaps * 4;
+  document.getElementById('heart-bpm').textContent = bpm;
+  const ok = bpm >= 120 && bpm <= 140;
+  const fast = bpm > 160;
+  document.getElementById('heart-status-lbl').textContent = fast ? '⚠ 心跳過快，請諮詢獸醫師' : ok ? '✓ 正常範圍（120–140）' : bpm < 100 ? '⚠ 心跳過慢' : '注意追蹤（稍偏快）';
+  document.getElementById('heart-bpm').style.color = ok ? 'var(--sage)' : 'var(--rose)';
+  document.getElementById('heart-result').style.display = 'block';
+  document.getElementById('h-save-btn').style.display = 'flex';
+  document.getElementById('heart-countdown').textContent = '✓';
+  toast('❤️ 測量完成：' + bpm + ' 次/分鐘');
+}
+function heartReset() {
+  clearInterval(heartInterval); heartInterval = null;
+  heartTaps = 0; heartSecs = 0; heartDone = false;
+  document.getElementById('heart-count').textContent = '0';
+  document.getElementById('heart-count').style.color = 'var(--ink-muted)';
+  document.getElementById('heart-result').style.display = 'none';
+  document.getElementById('heart-sub').textContent = '每感覺到一次心跳，點擊計數';
+  document.getElementById('h-tap-btn').disabled = true;
+  document.getElementById('h-tap-btn').style.opacity = '.5';
+  document.getElementById('h-start-btn').textContent = '開始';
+  document.getElementById('h-save-btn').style.display = 'none';
+  document.getElementById('heart-countdown').textContent = HEART_DURATION;
+  const ring = document.getElementById('heart-ring');
+  ring.style.transition = 'none';
+  ring.style.strokeDashoffset = 213.6;
+}
+function heartSave() {
+  const bpm = heartTaps * 4;
+  DB.insert('heartLogs', { bpm, petId: 0 });
+  renderAllLogs();
+  toast('💾 心跳 ' + bpm + ' 次/分鐘 已儲存');
+  document.getElementById('h-save-btn').style.display = 'none';
+}
+
+// ─── RESPIRATORY RATE ───
+let breathInterval = null, breathSecs = 0, breathTaps = 0, breathDone = false;
+const BREATH_DURATION = 30;
+
+function breathStart() {
+  if (breathInterval) return;
+  breathTaps = 0; breathSecs = 0; breathDone = false;
+  document.getElementById('breath-count').textContent = '0';
+  document.getElementById('breath-count').style.color = 'var(--sage)';
+  document.getElementById('breath-result').style.display = 'none';
+  document.getElementById('breath-sub').textContent = '每觀察到一次胸部起伏，點擊計數';
+  document.getElementById('b-tap-btn').disabled = false;
+  document.getElementById('b-tap-btn').style.opacity = '1';
+  document.getElementById('b-start-btn').textContent = '進行中';
+  document.getElementById('b-save-btn').style.display = 'none';
+  const ring = document.getElementById('breath-ring');
+  const circumference = 213.6;
+  ring.style.transition = 'none';
+  ring.style.strokeDashoffset = circumference;
+  setTimeout(() => { ring.style.transition = 'stroke-dashoffset ' + BREATH_DURATION + 's linear'; ring.style.strokeDashoffset = 0; }, 50);
+  breathInterval = setInterval(() => {
+    breathSecs++;
+    const remaining = BREATH_DURATION - breathSecs;
+    document.getElementById('breath-countdown').textContent = remaining;
+    if (breathSecs >= BREATH_DURATION) { breathFinish(); }
+  }, 1000);
+}
+function breathTap() {
+  if (breathDone || !breathInterval) return;
+  breathTaps++;
+  document.getElementById('breath-count').textContent = breathTaps;
+}
+function breathFinish() {
+  clearInterval(breathInterval); breathInterval = null; breathDone = true;
+  document.getElementById('b-tap-btn').disabled = true;
+  document.getElementById('b-tap-btn').style.opacity = '.5';
+  document.getElementById('b-start-btn').textContent = '完成';
+  const rpm = breathTaps * 2;
+  document.getElementById('breath-bpm').textContent = rpm;
+  const ok = rpm >= 20 && rpm <= 30;
+  const fast = rpm > 40;
+  document.getElementById('breath-status-lbl').textContent = fast ? '⚠ 呼吸急促，請立即就醫' : ok ? '✓ 正常範圍（20–30）' : rpm < 15 ? '⚠ 呼吸過緩' : rpm > 30 ? '注意：稍偏快（30–40）' : '✓ 正常';
+  document.getElementById('breath-bpm').style.color = ok ? 'var(--sage)' : 'var(--rose)';
+  document.getElementById('breath-result').style.display = 'block';
+  document.getElementById('b-save-btn').style.display = 'flex';
+  document.getElementById('breath-countdown').textContent = '✓';
+  toast('🌬 測量完成：' + rpm + ' 次/分鐘');
+}
+function breathReset() {
+  clearInterval(breathInterval); breathInterval = null;
+  breathTaps = 0; breathSecs = 0; breathDone = false;
+  document.getElementById('breath-count').textContent = '0';
+  document.getElementById('breath-count').style.color = 'var(--ink-muted)';
+  document.getElementById('breath-result').style.display = 'none';
+  document.getElementById('breath-sub').textContent = '每觀察到一次胸部起伏，點擊計數';
+  document.getElementById('b-tap-btn').disabled = true;
+  document.getElementById('b-tap-btn').style.opacity = '.5';
+  document.getElementById('b-start-btn').textContent = '開始';
+  document.getElementById('b-save-btn').style.display = 'none';
+  document.getElementById('breath-countdown').textContent = BREATH_DURATION;
+  const ring = document.getElementById('breath-ring');
+  ring.style.transition = 'none';
+  ring.style.strokeDashoffset = 213.6;
+}
+function breathSave() {
+  const rpm = breathTaps * 2;
+  DB.insert('breathLogs', { rpm, petId: 0 });
+  renderAllLogs();
+  toast('💾 呼吸 ' + rpm + ' 次/分鐘 已儲存');
+  document.getElementById('b-save-btn').style.display = 'none';
+}
+
+// ─── INIT ───
+function init() {
+  renderAllLogs();
+  attachEditFieldValidation();
+  console.info('[PawTracker] DB ready:', Object.keys(DB.load()));
+}
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('PawTracker PWA 註冊成功！'))
+      .catch(err => console.error('PWA 註冊失敗:', err));
+  });
+}
+document.addEventListener('DOMContentLoaded', init);
+
+// ─── TOAST ───
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast-el');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
