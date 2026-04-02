@@ -1,0 +1,18 @@
+{
+  "name": "PawTracker 寵物健康管家",
+  "short_name": "PawTracker",
+  "description": "專業的老犬健康紀錄與呼吸監測工具",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#7C9E8A",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/616/616408.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
